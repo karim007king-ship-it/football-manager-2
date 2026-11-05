@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b141d"><meta name="description" content="مدير كرة القدم 2 - لعبة إدارة نادٍ لكرة القدم">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>مدير كرة القدم 2</title>
+<style>
+:root{color-scheme:dark;--bg:#0b141d;--panel:#142432;--panel2:#1a3040;--gold:#e5b84b;--muted:#9db0bf;--green:#35c47a;--red:#ef6464}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#102333,var(--bg) 60%);color:#f4f7fa;font-family:system-ui,"Noto Sans Arabic",sans-serif;min-height:100vh}
+header{padding:20px 16px 14px;background:#0b141deF;border-bottom:1px solid #294153;position:sticky;top:0;z-index:5}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-weight:900;font-size:21px;color:var(--gold)}.sub{font-size:12px;color:var(--muted)}
+main{max-width:850px;margin:auto;padding:16px 14px 92px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
+.stat,.card{background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid #294153;border-radius:15px;padding:13px}
+.stat small{display:block;color:var(--muted);font-size:11px}.stat b{font-size:19px;color:var(--gold)}
+h2{font-size:18px;margin:20px 2px 10px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+button{font:inherit;border:0;border-radius:11px;padding:11px 13px;background:var(--gold);color:#17212a;font-weight:800;cursor:pointer}
+button.secondary{background:#294153;color:#f3f6f8}button:disabled{opacity:.45}
+.action{display:flex;align-items:center;gap:10px;text-align:right;background:var(--panel);color:#fff;border:1px solid #294153;min-height:76px}
+.action span{font-size:25px}.action small{display:block;color:var(--muted);font-weight:400;margin-top:3px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #294153}.row:last-child{border:0}
+.pill{font-size:11px;color:var(--green);background:#173c32;padding:4px 8px;border-radius:20px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:#0b141df5;border-top:1px solid #294153;padding:9px 4px calc(9px + env(safe-area-inset-bottom));z-index:10}
+nav button{background:transparent;color:var(--muted);padding:8px 6px;font-size:12px}nav button.active{color:var(--gold)}
+.notice{color:var(--muted);font-size:12px;line-height:1.7}.big{font-size:30px;font-weight:900;color:var(--gold)}
+.player{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}.player strong{font-size:14px}.player small{display:block;color:var(--muted)}
+@media(max-width:380px){.stats{gap:5px}.stat{padding:9px}.stat b{font-size:16px}.grid{gap:7px}}
+</style>
+</head>
+<body>
+<header><div class="top"><div><div class="brand">⚽ مدير كرة القدم 2</div><div class="sub">ابنِ ناديك… واصنع تاريخك</div></div><div class="pill">موسم 2026</div></div></header>
+<main id="app"></main>
+<nav>
+<button data-tab="home" class="active">🏠 الرئيسية</button><button data-tab="team">👥 الفريق</button><button data-tab="market">🔄 الانتقالات</button><button data-tab="match">🏟️ المباراة</button><button data-tab="records">📊 السجل</button>
+</nav>
+<script>
+const initial={club:"نادي الأبطال",money:2500000,points:0,played:0,wins:0,draws:0,losses:0,day:1,energy:90,last:"لم تلعب أي مباراة بعد",players:[
+{name:"ياسين الحارس",pos:"حارس",ovr:72,age:25,value:350000},
+{name:"آدم السالمي",pos:"مدافع",ovr:70,age:23,value:300000},
+{name:"مروان بن علي",pos:"مدافع",ovr:68,age:27,value:240000},
+{name:"سيف الدين",pos:"مدافع",ovr:71,age:22,value:320000},
+{name:"حمزة الجبالي",pos:"وسط",ovr:73,age:24,value:420000},
+{name:"مالك التونسي",pos:"وسط",ovr:69,age:21,value:280000},
+{name:"رامي القروي",pos:"وسط",ovr:74,age:26,value:470000},
+{name:"أنيس",pos:"جناح",ovr:70,age:20,value:310000},
+{name:"فارس",pos:"جناح",ovr:72,age:23,value:390000},
+{name:"بلال",pos:"مهاجم",ovr:75,age:25,value:520000},
+{name:"كريم",pos:"مهاجم",ovr:68,age:19,value:260000}
+],history:[]};
+let state;try{state=JSON.parse(localStorage.getItem("fm2-save"))||structuredClone(initial)}catch(e){state=JSON.parse(JSON.stringify(initial))}
+let tab="home";
+const fmt=n=>new Intl.NumberFormat("ar-TN").format(n);
+function save(){localStorage.setItem("fm2-save",JSON.stringify(state))}
+function avg(){return Math.round(state.players.reduce((a,p)=>a+p.ovr,0)/state.players.length)}
+function render(){
+const app=document.getElementById("app");
+document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+const stats=`<div class="stats"><div class="stat"><small>💰 الميزانية</small><b>${fmt(state.money)}</b><small>د.ت افتراضية</small></div><div class="stat"><small>⭐ قوة الفريق</small><b>${avg()}</b><small>من 100</small></div><div class="stat"><small>🏆 النقاط</small><b>${state.points}</b><small>بعد ${state.played} مباراة</small></div></div>`;
+let body="";
+if(tab==="home")body=`<section class="card"><div class="sub">لوحة إدارة النادي</div><h2 style="margin-top:6px">${state.club}</h2><div class="big">الموسم ${Math.ceil(state.day/10)}</div><p class="notice">اليوم ${state.day} · طاقة الفريق ${state.energy}%</p><p class="notice">${state.last}</p></section><h2>إدارة النادي</h2><div class="grid"><button class="action" onclick="go('team')"><span>👥</span><div>الفريق<small>التشكيلة ومستويات اللاعبين</small></div></button><button class="action" onclick="go('market')"><span>🔄</span><div>سوق الانتقالات<small>تدعيم الفريق</small></div></button><button class="action" onclick="go('match')"><span>🏟️</span><div>المباراة القادمة<small>العب ونافس على النقاط</small></div></button><button class="action" onclick="go('records')"><span>📊</span><div>الإحصائيات<small>نتائج ومسيرة النادي</small></div></button></div><h2>آخر المستجدات</h2><div class="card notice">حافظ على ميزانيتك، طوّر فريقك، واختر توقيت المباراة بعناية. يتم حفظ تقدمك تلقائياً على هذا الجهاز.</div>`;
+if(tab==="team")body=`<h2>قائمة اللاعبين (${state.players.length})</h2><div class="card">${state.players.map((p,i)=>`<div class="row player"><div><strong>${p.name}</strong><small>${p.pos} · ${p.age} سنة</small></div><b>${p.ovr}</b><span class="pill">${fmt(p.value)} د.ت</span></div>`).join("")}</div><p class="notice">التقييم من 100. تتغير قوة الفريق عند شراء لاعبين جدد.</p>`;
+if(tab==="market")body=`<h2>سوق الانتقالات</h2><p class="notice">لاعبون متاحون للتعاقد — الأسعار افتراضية داخل اللعبة.</p><div class="card">${[{name:"يوسف المساكني",pos:"جناح",ovr:82,age:34,value:850000},{name:"إلياس العاشوري",pos:"جناح",ovr:78,age:27,value:720000},{name:"منتصر الطالبي",pos:"مدافع",ovr:77,age:27,value:680000},{name:"حنبعل المجبري",pos:"وسط",ovr:76,age:23,value:650000},{name:"مهاجم شاب",pos:"مهاجم",ovr:74,age:21,value:500000}].map((p,i)=>`<div class="row"><div><strong>${p.name}</strong><div class="sub">${p.pos} · ${p.age} سنة · تقييم ${p.ovr}</div></div><div style="text-align:left"><b>${fmt(p.value)}</b><br><button style="margin-top:5px;padding:7px 10px" onclick="buy(${i})">شراء</button></div></div>`).join("")}</div>`;
+if(tab==="match")body=`<h2>المباراة القادمة</h2><div class="card" style="text-align:center;padding:24px"><div class="sub">الدوري المحلي · الجولة ${state.played+1}</div><h2>${state.club}</h2><div class="big">VS</div><h2>نادي المنافس</h2><p class="notice">قوة فريقك: ${avg()} · طاقة اللاعبين: ${state.energy}%</p><button onclick="playMatch()" ${state.energy<20?"disabled":""}>▶ انطلاق المباراة</button><p class="notice">تستهلك المباراة 20 نقطة طاقة. النتيجة تعتمد على قوة الفريق والطاقة وعامل عشوائي.</p></div><h2>آخر نتيجة</h2><div class="card">${state.last}</div>`;
+if(tab==="records")body=`<h2>سجل النادي</h2><div class="stats"><div class="stat"><small>انتصارات</small><b>${state.wins}</b></div><div class="stat"><small>تعادلات</small><b>${state.draws}</b></div><div class="stat"><small>هزائم</small><b>${state.losses}</b></div></div><div class="card"><div class="row"><span>المباريات</span><b>${state.played}</b></div><div class="row"><span>النقاط</span><b>${state.points}</b></div><div class="row"><span>قوة الفريق</span><b>${avg()}/100</b></div><div class="row"><span>الميزانية</span><b>${fmt(state.money)} د.ت</b></div></div><button class="secondary" style="margin-top:14px" onclick="resetGame()">إعادة بدء المسيرة</button><p class="notice">إعادة البدء تمسح الحفظ المحلي الحالي لهذا الإصدار.</p>`;
+app.innerHTML=stats+body;
+}
+function go(t){tab=t;render()}
+function buy(i){const p=[{name:"يوسف المساكني",pos:"جناح",ovr:82,age:34,value:850000},{name:"إلياس العاشوري",pos:"جناح",ovr:78,age:27,value:720000},{name:"منتصر الطالبي",pos:"مدافع",ovr:77,age:27,value:680000},{name:"حنبعل المجبري",pos:"وسط",ovr:76,age:23,value:650000},{name:"مهاجم شاب",pos:"مهاجم",ovr:74,age:21,value:500000}][i];if(state.players.some(x=>x.name===p.name)){alert("هذا اللاعب موجود بالفعل في فريقك.");return}if(state.money<p.value){alert("الميزانية غير كافية.");return}state.money-=p.value;state.players.push({...p});save();alert("تم التعاقد مع "+p.name);render()}
+function playMatch(){if(state.energy<20)return;const strength=avg()*(state.energy/100);const opponent=65+Math.random()*18;const ours=Math.max(0,Math.round(Math.random()*3+(strength-70)/12));const theirs=Math.max(0,Math.round(Math.random()*3+(opponent-70)/12));state.played++;state.energy=Math.max(0,state.energy-20);state.day++;let outcome;if(ours>theirs){state.wins++;state.points+=3;state.money+=180000;outcome="فوز 🎉"}else if(ours===theirs){state.draws++;state.points++;state.money+=90000;outcome="تعادل"}else{state.losses++;outcome="هزيمة"}state.last=`${outcome} — ${state.club} ${ours} - ${theirs} نادي المنافس`;state.history.unshift(state.last);save();render()}
+function resetGame(){if(confirm("هل تريد فعلاً بدء مسيرة جديدة؟")){localStorage.removeItem("fm2-save");state=JSON.parse(JSON.stringify(initial));save();render()}}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.tab)));
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+render();
+</script>
+</body></html>
