@@ -26,20 +26,22 @@
   const rand = (a,b) => G.rand(a,b);
   const pick = a => G.pick(a);
   const money = n => Math.round(n);
-  function report(f) {
+  function report(f, matchData) {
     const home=G.club(f.home), away=G.club(f.away);
     const hs=G.strength(f.home), as=G.strength(f.away);
-    const homeShots=rand(Math.max(3,Math.round(7+hs.atk/9)),22);
-    const awayShots=rand(Math.max(3,Math.round(7+as.atk/9)),22);
-    const homePoss=Math.max(28,Math.min(72,Math.round(50+(hs.atk-as.atk)/3+rand(-9,9))));
+    const live=matchData&&matchData.fixtureId===f.id?matchData:null;
+    const homeShots=live?live.homeShots:rand(Math.max(3,Math.round(7+hs.atk/9)),22);
+    const awayShots=live?live.awayShots:rand(Math.max(3,Math.round(7+as.atk/9)),22);
+    const homePoss=live?live.homePossession:Math.max(28,Math.min(72,Math.round(50+(hs.atk-as.atk)/3+rand(-9,9))));
     const report={fixtureId:f.id,date:f.date,competition:f.competition,round:f.round,home:f.home,away:f.away,
-      homeGoals:f.hg,awayGoals:f.ag,homeShots,awayShots,homeOnTarget:Math.min(homeShots,Math.max(f.hg,rand(1,Math.max(1,Math.ceil(homeShots*.55))))),
-      awayOnTarget:Math.min(awayShots,Math.max(f.ag,rand(1,Math.max(1,Math.ceil(awayShots*.55))))),
-      possessionHome:homePoss,possessionAway:100-homePoss,cornersHome:rand(1,10),cornersAway:rand(1,9),
-      passesHome:rand(250,520),passesAway:rand(250,520),attendance:rand(3500,Math.max(3501,Math.min(home.capacity||30000,home.capacity||30000))),
+      homeGoals:f.hg,awayGoals:f.ag,homeShots,awayShots,homeOnTarget:live?live.homeOnTarget:Math.min(homeShots,Math.max(f.hg,rand(1,Math.max(1,Math.ceil(homeShots*.55))))),
+      awayOnTarget:live?live.awayOnTarget:Math.min(awayShots,Math.max(f.ag,rand(1,Math.max(1,Math.ceil(awayShots*.55))))),
+      possessionHome:homePoss,possessionAway:100-homePoss,cornersHome:live?live.cornersHome:rand(1,10),cornersAway:live?live.cornersAway:rand(1,9),
+      passesHome:live?live.passesHome:rand(250,520),passesAway:live?live.passesAway:rand(250,520),attendance:live&&live.attendance?live.attendance:rand(3500,Math.max(3501,Math.min(home.capacity||30000,home.capacity||30000))),
       playerRatings:[]};
-    const scorers=S.players.filter(p=>(p.clubId===f.home||p.clubId===f.away)&&p.apps>0).slice(0,22);
-    report.playerRatings=scorers.slice(0,8).map(p=>({playerId:p.id,rating:Math.min(9.8,Math.max(5.5,Number((6.2+rand(0,25)/10+(p.goals?0.5:0)).toFixed(1))))}));
+    const participantIds=live?new Set([...(live.lineups?.[f.home]||[]),...(live.lineups?.[f.away]||[]),...(live.substitutedOut||[])]):null;
+    const scorers=live?S.players.filter(p=>participantIds.has(p.id)&&p.clubId!==null):S.players.filter(p=>(p.clubId===f.home||p.clubId===f.away)&&p.apps>0).slice(0,22);
+    report.playerRatings=scorers.slice(0,22).map(p=>({playerId:p.id,rating:live?Math.min(9.8,Math.max(5.5,Number((6.2+((Number(p.form)||65)-65)/20+(p.goals?0.3:0)).toFixed(1))):Math.min(9.8,Math.max(5.5,Number((6.2+rand(0,25)/10+(p.goals?0.5:0)).toFixed(1))))}));
     S.matchReports.unshift(report); if(S.matchReports.length>80)S.matchReports.length=80;
     const mine=f.home===S.clubId||f.away===S.clubId;
     if(mine){
