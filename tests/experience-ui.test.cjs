@@ -12,3 +12,7 @@ assert.ok(
 );
 
 console.log("Experience UI navigation tests passed.");
+
+assert.ok(ui.includes('"حراسة"'), "Goalkeepers should have a dedicated training focus");
+assert.ok(ui.includes('p.trainingProgress'), "Training UI should expose the progression system");
+assert.ok(ui.includes('إلغاء البرنامج'), "Training UI should allow removing an individual focus");
