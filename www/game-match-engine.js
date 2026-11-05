@@ -13,6 +13,9 @@
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
       passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
+    const opponentId=f.home===S.clubId?f.away:f.home;
+    m.tactics[opponentId]={formation:(G.club(opponentId).formation||"4-4-2"),style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
+    m.aiLastUpdateMinute=0;
     [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
     G.save();return {success:true};
   }
@@ -21,8 +24,39 @@
     const f=S.fixtures.find(x=>x.id===m.fixtureId);if(!f)return {error:"تعذر العثور على المباراة"};
     const userHome=m.home===S.clubId, userId=S.clubId, oppId=userHome?m.away:m.home;
     const choiceKey=choice||"متوازن";m.lastChoice=choiceKey;
-    const userStrength=G.strength(userId),oppStrength=G.strength(oppId);
-    const tactics=(m.tactics&&m.tactics[userId])||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"};
+    m.tactics=m.tactics||{};
+    m.tactics[userId]=m.tactics[userId]||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
+    m.tactics[oppId]=m.tactics[oppId]||{formation:G.club(oppId).formation||"4-4-2",style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
+    const userTactics=m.tactics[userId],ai=m.tactics[oppId];
+    const userScore=userHome?m.homeGoals:m.awayGoals,oppScore=userHome?m.awayGoals:m.homeGoals;
+    const previousAI=JSON.stringify(ai);
+    const userPossBefore=userHome?m.homePossession:100-m.homePossession;
+    if(m.minute>=30){
+      if(oppScore<userScore&&m.minute>=45){
+        Object.assign(ai,{formation:"4-3-3",style:"لعب مباشر",pressing:"عالٍ",defensiveLine:"متقدمة",width:"واسعة"});
+      }else if(oppScore>userScore&&m.minute>=60){
+        Object.assign(ai,{formation:"4-2-3-1",style:"مرتدات",pressing:"منخفض",defensiveLine:"متأخرة",width:"ضيقة"});
+      }else if(userPossBefore>=59||userTactics.style==="استحواذ"){
+        Object.assign(ai,{formation:"4-2-3-1",style:"مرتدات",pressing:"متوسط",defensiveLine:"متوسطة",width:"ضيقة"});
+      }else if(userTactics.pressing==="عالٍ"||userTactics.defensiveLine==="متقدمة"){
+        Object.assign(ai,{formation:"4-4-2",style:"لعب مباشر",pressing:"متوسط",defensiveLine:"متأخرة",width:"واسعة"});
+      }else{
+        Object.assign(ai,{formation:G.club(oppId).formation||"4-4-2",style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"});
+      }
+    }
+    if(JSON.stringify(ai)!==previousAI){
+      const reason=oppScore<userScore?"الفريق متأخر في النتيجة":oppScore>userScore?"الفريق يحافظ على تقدمه":userPossBefore>=59||userTactics.style==="استحواذ"?"مواجهة استحواذ فريقك":"مواجهة ضغط فريقك";
+      m.events.unshift({minute:m.minute,text:"🧠 المدرب المنافس يغيّر خطته ("+reason+"): "+ai.formation+"، "+ai.style+"، ضغط "+ai.pressing+"."});
+      m.aiLastUpdateMinute=m.minute;
+    }
+    const userStrength=G.strength(userId),rawOppStrength=G.strength(oppId);
+    const oppFormationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[ai.formation]||{atk:0,def:0,pos:0};
+    const oppStyleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[ai.style]||{atk:0,def:0,pos:0};
+    const oppPressEffect=({"منخفض":{atk:-1,def:2,pos:-2},"متوسط":{atk:0,def:0,pos:0},"عالٍ":{atk:1,def:4,pos:4}})[ai.pressing]||{atk:0,def:0,pos:0};
+    const oppLineEffect=({"متأخرة":{atk:-1,def:3},"متوسطة":{atk:0,def:0},"متقدمة":{atk:1,def:1}})[ai.defensiveLine]||{atk:0,def:0};
+    const oppWidthEffect=({"متوازنة":{atk:0,def:0},"واسعة":{atk:2,def:-1},"ضيقة":{atk:0,def:2}})[ai.width]||{atk:0,def:0};
+    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def};
+    const tactics=userTactics;
     const formationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[tactics.formation]||{atk:0,def:0,pos:0};
     const styleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[tactics.style]||{atk:0,def:0,pos:0};
     const pressEffect=({"منخفض":{atk:-1,def:2,pos:-2,fatigue:.35},"متوسط":{atk:0,def:0,pos:0,fatigue:.8},"عالٍ":{atk:1,def:4,pos:4,fatigue:2.1}})[tactics.pressing]||{atk:0,def:0,pos:0,fatigue:.8};
@@ -51,7 +85,7 @@
       }
     }
     m.minute=end;
-    const userPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)+(Math.random()*8-4))));
+    const userPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)-oppFormationEffect.pos-oppStyleEffect.pos-oppPressEffect.pos+(Math.random()*8-4))));
     m.homePossession=userHome?userPoss:100-userPoss;
     const possessionFactor=styleEffect.pos>0?1.12:styleEffect.pos<0?.92:1;
     m.passesHome+=Math.round((end-start)*5.5*(m.homePossession/50)*(userHome?possessionFactor:1));
