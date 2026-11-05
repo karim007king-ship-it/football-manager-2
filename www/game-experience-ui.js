@@ -40,6 +40,18 @@
   const tacticalGroup=(label,key,options)=>'<div class="ex-tactic-group"><b>'+label+'</b><div class="ex-shortcuts">'+options.map(v=>btn(v,"live-tactic:"+key+":"+v,liveTactics[key]===v?"gold":"")).join("")+'</div></div>';
   return '<div class="ex-match-banner"><span>LIVE MATCH CENTRE</span><b>'+esc(m.minute)+"′</b></div>"+
    '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/90*100)+'%"></i></div><small>'+m.minute+' من 90 دقيقة</small></div>'+
+   section("ملعب المباراة المباشر",card((()=>{
+      const p=m.pitch||{ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:[],awayPlayers:[]};
+      const dots=[...(p.homePlayers||[]).map(x=>({...x,side:"home"})),...(p.awayPlayers||[]).map(x=>({...x,side:"away"}))].map(x=>'<span class="ex-pitch-player '+x.side+'" style="left:'+pct(x.x)+'%;top:'+pct(x.y)+'%" title="'+esc(x.name)+'">'+(x.side==="home"?"●":"◆")+'</span>').join("");
+      const ball='<span class="ex-match-ball" style="left:'+pct(p.ballX)+'%;top:'+pct(p.ballY)+'%">⚽</span>';
+      return '<div class="ex-live-pitch"><div class="ex-pitch-half"></div><div class="ex-pitch-circle"></div><div class="ex-pitch-box left"></div><div class="ex-pitch-box right"></div>'+dots+ball+'</div><div class="ex-pitch-legend"><span>● '+esc(h.short)+'</span><span>◆ '+esc(a.short)+'</span></div><p class="ex-muted">الكرة لدى: <b>'+esc(G.club(p.possession)?.short||"—")+'</b> · '+esc(p.phase||"وسط الملعب")+'</p>';
+    })()))+
+   section("قراراتك داخل الملعب",card((()=>{
+      const p=m.pitch||{},hasBall=p.possession===S.clubId,attacking=hasBall&&(userHome?Number(p.ballX)>=62:Number(p.ballX)<=38),defending=!hasBall&&(userHome?Number(p.ballX)<=38:Number(p.ballX)>=62);
+      if(attacking)return '<p class="ex-muted">فريقك في الثلث الهجومي. اختر طريقة إنهاء الهجمة أو تطويرها.</p><div class="ex-shortcuts">'+btn("⚽ تسديد","step:تسديد:1","gold")+btn("تمريرة بينية","step:تمريرة بينية:1")+btn("مراوغة","step:مراوغة:1")+btn("عرضية","step:عرضية:1")+'</div>';
+      if(defending)return '<p class="ex-muted">المنافس يهاجم. اختر طريقة التعامل مع حامل الكرة.</p><div class="ex-shortcuts">'+btn("ضغط على حامل الكرة","step:ضغط على حامل الكرة:1","gold")+btn("تراجع دفاعي","step:تراجع دفاعي:1")+btn("محاولة افتكاك الكرة","step:افتكاك الكرة:1")+'</div>';
+      return '<p class="ex-muted">اللعب في وسط الملعب. تابع انتقال الكرة أو غيّر عقلية فريقك.</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي:1")+btn("متوازن","step:متوازن:1","gold")+btn("دفاعي","step:دفاعي:1")+btn("تقدم دقيقة","step:متوازن:1")+'</div>';
+    })()))+
    section("التشكيلة الحالية",card((()=>{
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),players=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),groups=[["حارس","GK"],["الدفاع","DEF"],["الوسط","MID"],["الهجوم","FWD"]];
       return '<p class="ex-muted">اللاعبون الموجودون حالياً على أرض الملعب: '+players.length+'/11</p><div class="ex-live-lineup">'+groups.map(([label,pos])=>{const list=players.filter(p=>p.pos===pos);return list.length?'<div class="ex-live-lineup-row"><b>'+label+'</b><div>'+list.map(p=>'<span>'+esc(p.name)+'</span>').join("")+'</div></div>':""}).join("")+'</div>';
@@ -142,6 +154,16 @@
  .ex-time-actions{display:flex;gap:7px;flex-wrap:wrap}.ex-time-actions .ex-btn{flex:1}
  .ex-meter-label{display:flex;justify-content:space-between;font-size:11px;color:#c2d1d8;margin:9px 0 5px}.ex-meter-label b{color:#e9bf58}
  .ex-meter{height:7px;border-radius:10px;background:#263e4b;overflow:hidden}.ex-meter i{display:block;height:100%;background:linear-gradient(90deg,#2eae79,#8bd59c);border-radius:10px}.ex-meter i.gold{background:linear-gradient(90deg,#bd8c2d,#f1d176)}
+ .ex-live-pitch{position:relative;height:245px;overflow:hidden;border:2px solid #c4d6b9;border-radius:12px;background:repeating-linear-gradient(90deg,#1c6948 0 12.2%,#217451 12.3% 24.5%);box-shadow:inset 0 0 0 1px #ffffff55}
+ .ex-live-pitch:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid #ffffff9c}
+ .ex-pitch-half{position:absolute;left:50%;top:50%;width:58px;height:58px;border:2px solid #ffffff9c;border-radius:50%;transform:translate(-50%,-50%)}
+ .ex-pitch-circle{position:absolute;inset:5px;border:1px solid #ffffff35;border-radius:8px;pointer-events:none}
+ .ex-pitch-box{position:absolute;top:27%;height:46%;width:11%;border:2px solid #ffffff9c}
+ .ex-pitch-box.left{left:0;border-left:0}.ex-pitch-box.right{right:0;border-right:0}
+ .ex-pitch-player{position:absolute;z-index:2;transform:translate(-50%,-50%);display:grid;place-items:center;width:17px;height:17px;border-radius:50%;font-size:13px;text-shadow:0 1px 2px #000;transition:left .35s ease,top .35s ease}
+ .ex-pitch-player.home{color:#ffe17c;background:#173d2b;border:1px solid #fff0a8}.ex-pitch-player.away{color:#d9ecff;background:#1b3556;border:1px solid #d9ecff}
+ .ex-match-ball{position:absolute;z-index:4;transform:translate(-50%,-50%);font-size:19px;filter:drop-shadow(0 1px 2px #000);transition:left .35s ease,top .35s ease}
+ .ex-pitch-legend{display:flex;justify-content:space-between;font-size:10px;color:#cbd9df;margin-top:7px}
  .ex-match-banner{display:flex;justify-content:space-between;color:#f1c65f;font-size:11px;font-weight:900;padding:7px 3px}
  .ex-scoreboard{border-radius:20px;background:radial-gradient(ellipse at center,#235044,#102c35 70%);border:1px solid #4a6a55;text-align:center;padding:17px 12px;box-shadow:0 12px 28px #0005}
  .ex-scoreboard>small{color:#c3d4cb}.ex-score-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:17px 0}.ex-score-teams div{display:grid;gap:6px}.ex-score-teams div span{font-size:28px}.ex-score-teams div b{font-size:15px}.ex-score-teams>strong{font-size:35px;color:#f4d16d}
