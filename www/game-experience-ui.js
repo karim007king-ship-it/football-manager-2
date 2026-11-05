@@ -68,6 +68,7 @@
   if(k==="swap-career"){if(!confirm("سيتم التبديل بين المسيرة الحالية والمسيرة المحفوظة. هل تريد المتابعة؟"))return;const result=G.swapArchivedCareer();if(result.error)alert(result.error);page="home";render();return}
   if(k==="club"){S.clubId=Number(id);S.career=true;S.date=new Date().toISOString().slice(0,10);G.schedule();S.message="بدأت مسيرتك مع "+G.me().name;G.save();page="home";render();return}
   if(k==="team"){page="team";render();return}
+  if(k==="training"||k==="press"||k==="fans"){page=k;render();return}
   if(k==="starter"){const p=S.players.find(x=>x.id===Number(id));if(!p)return;if(!p.starter&&G.squad().filter(x=>x.starter).length>=11){alert("لا يمكن اختيار أكثر من 11 لاعباً.");return}if(p.injured||p.suspension){alert("لا يمكن إشراك لاعب مصاب أو موقوف.");return}p.starter=!p.starter;G.save();render();return}
   if(k==="renew"){const p=S.players.find(x=>x.id===Number(id));if(!p)return;const years=Number(prompt("مدة العقد الجديدة (1 إلى 5 سنوات)",3));if(!Number.isInteger(years)||years<1||years>5)return;const wage=Number(prompt("الأجر الأسبوعي الجديد",Math.round(p.wage*1.1)));const result=G.renewContract(p.id,years,wage);if(result.error)alert(result.error);render();return}
   if(k==="tactics"){page="tactics";render();return}
