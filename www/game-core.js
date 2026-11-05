@@ -51,7 +51,7 @@ window.FM2 = (() => {
  }
  function replaceState(next){Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,next);}
  function startNewCareer(){
-  if(!saveRecoveryBlocked)save();
+  if(!saveRecoveryBlocked&&!save())return {error:"تعذر حفظ المسيرة الحالية قبل بدء مسيرة جديدة."};
   const current=localStorage.getItem(SAVE_KEY);
   try{
    if(saveRecoveryBlocked){if(current)localStorage.setItem(RECOVERY_KEY,current)}
@@ -67,7 +67,7 @@ window.FM2 = (() => {
   let next;try{next=JSON.parse(archived)}catch(e){return {error:"تعذر قراءة المسيرة المحفوظة."}}
   if(!validSaveData(next))return {error:"ملف المسيرة المحفوظة غير صالح."};
   if(!saveRecoveryBlocked){
-   save();
+   if(!save())return {error:"تعذر حفظ المسيرة الحالية قبل التبديل."};
    const current=localStorage.getItem(SAVE_KEY);
    try{if(current)localStorage.setItem(ARCHIVE_KEY,current)}catch(e){return {error:"تعذر حفظ المسيرة الحالية قبل التبديل."}}
   }
