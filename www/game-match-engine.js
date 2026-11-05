@@ -57,6 +57,19 @@
     const f=S.fixtures.find(x=>x.id===m.fixtureId);if(!f)return {error:"تعذر العثور على المباراة"};
     const userHome=m.home===S.clubId, userId=S.clubId, oppId=userHome?m.away:m.home;
     const choiceKey=choice||"متوازن";m.lastChoice=choiceKey;
+    let actionBoost=0,defenseBoost=0;
+    const p=m.pitch||{},userHasBall=p.possession===userId;
+    const userAttacking=userHasBall&&(userHome?Number(p.ballX)>=62:Number(p.ballX)<=38);
+    const userDefending=!userHasBall&&(userHome?Number(p.ballX)<=38:Number(p.ballX)>=62);
+    if(userAttacking&&["تسديد","تمريرة بينية","مراوغة","عرضية"].includes(choiceKey)){
+      actionBoost=choiceKey==="تسديد"?.15:choiceKey==="تمريرة بينية"?.09:choiceKey==="عرضية"?.08:.06;
+      m.events.unshift({minute:m.minute,text:"🎮 قرارك الهجومي: "+choiceKey+" في الثلث الهجومي."});
+    }else if(userDefending&&["ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)){
+      defenseBoost=choiceKey==="افتكاك الكرة"?.12:choiceKey==="ضغط على حامل الكرة"?.10:.06;
+      m.events.unshift({minute:m.minute,text:"🛡️ قرارك الدفاعي: "+choiceKey+"."});
+    }else if(["تسديد","تمريرة بينية","مراوغة","عرضية","ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)){
+      m.events.unshift({minute:m.minute,text:"القرار "+choiceKey+" غير مناسب لموقع الكرة الحالي؛ تابع اللعب واختر قراراً مناسباً."});
+    }
     m.tactics=m.tactics||{};
     m.tactics[userId]=m.tactics[userId]||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
     m.tactics[oppId]=m.tactics[oppId]||{formation:G.club(oppId).formation||"4-4-2",style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
@@ -107,8 +120,8 @@
     const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
     for(let minute=start+1;minute<=end;minute++){
       movePitch(m,minute);
-      const homeChance=Math.max(.025,Math.min(.20,.075+(homeAtk-awayDef)/420));
-      const awayChance=Math.max(.025,Math.min(.20,.075+(awayAtk-homeDef)/420));
+      const homeChance=Math.max(.025,Math.min(.28,.075+(homeAtk-awayDef)/420+(userHome?actionBoost:0)-(userHome?0:defenseBoost)));
+      const awayChance=Math.max(.025,Math.min(.28,.075+(awayAtk-homeDef)/420+(userHome?0:actionBoost)-(userHome?defenseBoost:0)));
       if(Math.random()<homeChance){
         m.homeShots++;const on=Math.random()<.48;if(on){m.homeOnTarget++;if(Math.random()<Math.max(.08,Math.min(.42,.19+(homeAtk-awayDef)/250))){m.homeGoals++;m.events.unshift({minute,text:"⚽ هدف لأصحاب الأرض! "+G.club(m.home).short+" يهز الشباك."})}else m.events.unshift({minute,text:"تسديدة خطيرة من "+G.club(m.home).short+" والحارس يتصدى."})}
         else if(Math.random()<.35){m.cornersHome++;m.events.unshift({minute,text:"ركنية لصالح "+G.club(m.home).short+"."})}
