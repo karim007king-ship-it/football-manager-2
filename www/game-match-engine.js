@@ -19,7 +19,7 @@
     [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
     G.save();return {success:true};
   }
-  function step(choice){
+  function step(choice,minutes){
     const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
     const f=S.fixtures.find(x=>x.id===m.fixtureId);if(!f)return {error:"تعذر العثور على المباراة"};
     const userHome=m.home===S.clubId, userId=S.clubId, oppId=userHome?m.away:m.home;
@@ -71,7 +71,7 @@
     const userDef=userStrength.def+mentalityDef+formationEffect.def+styleEffect.def+pressEffect.def+lineEffect.def+widthEffect.def-fatiguePenalty*.55;
     const homeAtk=userHome?userAtk:oppStrength.atk, awayAtk=userHome?oppStrength.atk:userAtk;
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
-    const start=m.minute,end=Math.min(90,start+15);
+    const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
     for(let minute=start+1;minute<=end;minute++){
       const homeChance=Math.max(.025,Math.min(.20,.075+(homeAtk-awayDef)/420));
       const awayChance=Math.max(.025,Math.min(.20,.075+(awayAtk-homeDef)/420));
@@ -91,9 +91,9 @@
     m.passesHome+=Math.round((end-start)*5.5*(m.homePossession/50)*(userHome?possessionFactor:1));
     m.passesAway+=Math.round((end-start)*5.5*((100-m.homePossession)/50)*(userHome?1:possessionFactor));
     activePlayers.forEach(p=>{p.fatigue=Math.min(100,(Number(p.fatigue)||0)+pressEffect.fatigue);});
-    if(m.minute===45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
+    if(m.minute===45&&start<45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
     if(m.minute===90){finish(f,m);return {finished:true,match:m};}
-    G.save();return {finished:false,minute:m.minute,match:m};
+    G.save();return {finished:false,halfTime:m.minute===45&&start<45,minute:m.minute,match:m};
   }
   function finish(f,m){
     f.hg=m.homeGoals;f.ag=m.awayGoals;f.status="played";f.weather="أجواء ملعب";
