@@ -9,14 +9,23 @@
   function begin(f){
     if(!f||f.status!=="scheduled")return {error:"المباراة غير متاحة"};
     if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
+    const validatedLineups={};
+    for(const id of [f.home,f.away]){
+      const club=G.club(id),eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension),starters=eligible.filter(p=>p.starter);
+      if(starters.length!==11)return {error:"لا يمكن بدء المباراة: يجب أن تضم تشكيلة "+(club?.short||club?.name||"الفريق")+" 11 لاعباً مؤهلاً بالضبط. التشكيلة الحالية: "+starters.length+"."};
+      if(new Set(starters.map(p=>p.id)).size!==11)return {error:"لا يمكن بدء المباراة: يوجد لاعب مكرر في تشكيلة "+(club?.short||club?.name||"الفريق")+"."};
+      const goalkeepers=starters.filter(p=>p.pos==="GK").length;
+      if(goalkeepers!==1)return {error:"لا يمكن بدء المباراة: يجب اختيار حارس مرمى واحد بالضبط لفريق "+(club?.short||club?.name||"الفريق")+"."};
+      validatedLineups[id]=starters.map(p=>p.id);
+    }
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
-      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
+      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
     const opponentId=f.home===S.clubId?f.away:f.home;
     m.tactics[opponentId]={formation:(G.club(opponentId).formation||"4-4-2"),style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
     m.aiLastUpdateMinute=0;
-    [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
+    [f.home,f.away].forEach(id=>{m.substitutions[id]=0;});
     G.save();return {success:true};
   }
   function step(choice,minutes){
