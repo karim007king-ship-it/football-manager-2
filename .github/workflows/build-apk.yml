@@ -2,7 +2,7 @@ name: Build Football Manager 2 APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fm2-apk-foundation, fm2-full-engine, fm2-management-expansion]
+    branches: [main, fm2-apk-foundation, fm2-full-engine, fm2-management-expansion, fm2-minute-by-minute-match]
     paths:
       - 'www/**'
       - 'capacitor.config.json'
