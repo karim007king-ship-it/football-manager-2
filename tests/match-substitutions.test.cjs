@@ -11,9 +11,14 @@ let currentOut=m.lineups[1][0],incoming=bench[0].id;
 assert.equal(G.substituteLiveMatch(currentOut,incoming).success,true,"Substitution should be available immediately after kickoff");
 assert.equal(m.minute,0,"A substitution may be made before the first interval");
 assert.ok(!m.lineups[1].includes(currentOut)&&m.lineups[1].includes(incoming),"Lineup must replace outgoing player with substitute");
+assert.equal(team.find(p=>p.id===currentOut).starter,false,"Outgoing player must leave the club starting XI");
+assert.equal(team.find(p=>p.id===incoming).starter,true,"Incoming substitute must become a club starter");
+assert.equal(team.filter(p=>p.starter).length,11,"Club starting XI must remain at eleven after a substitution");
 assert.equal(m.substitutionLog.length,1,"Substitution should be recorded in match log");
 for(let n=1;n<5;n++){const out=m.lineups[1][n],inn=bench[n].id;assert.equal(G.substituteLiveMatch(out,inn).success,true,"Substitution "+(n+1)+" should succeed");}
 assert.equal(m.substitutions[1],5,"Five substitutions should be counted");
+assert.equal(team.filter(p=>p.starter).length,11,"Club starting XI must still contain eleven players after five substitutions");
+assert.ok(bench.slice(0,5).every(p=>p.starter),"All five incoming substitutes must be adopted into the starting XI");
 const sixthOut=m.lineups[1][0],sixthIn=team.find(p=>!m.lineups[1].includes(p.id)&&!p.injured&&!p.suspension).id;
 assert.ok(G.substituteLiveMatch(sixthOut,sixthIn).error,"Sixth substitution must be rejected");
 assert.equal(m.lineups[1].length,11,"Team must retain eleven players after substitutions");
