@@ -30,6 +30,7 @@ S.fixtures=[];
 S.players.forEach(p=>{p.focus=null;p.fatigue=0});
 const trainee=G.squad(1).find(p=>p.pos==="FWD"&&p.attributes&&Number.isFinite(p.attributes.finishing));
 if(!trainee)throw Error("Training test requires a forward with skill attributes");
+G.squad(1).forEach(p=>p.wage=0);
 club.budget=100000;
 const finishingBefore=trainee.attributes.finishing,trainingBudgetBefore=club.budget;
 trainee.focus="تسديد";
