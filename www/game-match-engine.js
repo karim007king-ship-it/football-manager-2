@@ -85,6 +85,9 @@
     if(!out||!inn||!lineup.includes(out.id)||lineup.includes(inn.id))return {error:"اختيار التبديل غير صالح."};
     if(inn.injured||inn.suspension)return {error:"لا يمكن إشراك لاعب مصاب أو موقوف."};
     lineup[lineup.indexOf(out.id)]=inn.id;
+    // Persist the live substitution in the club starting XI for future matches.
+    out.starter=false;
+    inn.starter=true;
     m.substitutions[id]=(m.substitutions[id]||0)+1;
     m.substitutionLog=m.substitutionLog||[];
     m.substitutionLog.unshift({minute:m.minute,out:out.id,in:inn.id,outName:out.name,inName:inn.name});
