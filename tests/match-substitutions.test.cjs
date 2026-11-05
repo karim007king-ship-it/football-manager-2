@@ -15,7 +15,16 @@ assert.ok(keeperOut&&wrong,"Test requires goalkeeper and outfield options");
 const rejected=G.substituteLiveMatch(keeperOut,wrong.id);
 assert.ok(rejected.error&&rejected.error.includes("مركز البديل غير مناسب"),"Goalkeeper must not be replaced by an outfield player");
 assert.equal(m.substitutions[1],0,"Rejected position mismatch must not consume a substitution");
-const plans=[["DEF",2],["MID",2],["FWD",1]];
+const keeperIn=bench.find(p=>group(p)==="GK");
+assert.ok(keeperIn,"Test requires a reserve goalkeeper");
+assert.equal(G.substituteLiveMatch(keeperOut,keeperIn.id).success,true,"Goalkeeper substitution should succeed");
+assert.ok(m.substitutedOut.includes(keeperOut),"Replaced goalkeeper must be marked as substituted out");
+assert.ok(!m.lineups[1].includes(keeperOut),"Replaced goalkeeper must leave the pitch");
+const keeperReturn=G.substituteLiveMatch(keeperIn.id,keeperOut);
+assert.ok(keeperReturn.error&&keeperReturn.error.includes("سبق استبداله"),"A substituted goalkeeper must not be allowed back onto the pitch");
+assert.equal(m.substitutions[1],1,"Rejected return must not consume another substitution");
+
+const plans=[["DEF",1],["MID",2],["FWD",1]];
 for(const [g,count] of plans){
  const outs=starters.filter(p=>group(p)===g),ins=bench.filter(p=>group(p)===g);
  assert.ok(outs.length>=count&&ins.length>=count,"Need enough real "+g+" starters and substitutes");
@@ -30,10 +39,11 @@ for(const [g,count] of plans){
  }
 }
 assert.equal(m.substitutions[1],5,"Five substitutions should be counted");
+assert.equal(m.substitutedOut.length,5,"Every outgoing player must be recorded as substituted");
 assert.equal(m.lineups[1].length,11,"Team must retain eleven players after five substitutions");
 const sixthOut=m.lineups[1].find(id=>group(team.find(p=>p.id===id))!=="GK");
 const sixth=G.substituteLiveMatch(sixthOut,bench.find(p=>!m.lineups[1].includes(p.id)).id);
 assert.ok(sixth.error&&sixth.error.includes("الحد الأقصى"),"Sixth substitution must be rejected by the five-substitution limit");
 assert.equal(team.filter(p=>p.starter).length,11,"Persistent starting XI must still contain eleven players");
 assert.equal(m.substitutionLog.length,5,"Only five successful substitutions should be recorded");
-console.log("PASS: balanced reserve positions, compatible substitutions, lineup persistence, and five-substitution limit");
+console.log("PASS: outgoing players are unavailable for re-entry, keeper substitution, position compatibility, lineup persistence, and five-substitution limit");
