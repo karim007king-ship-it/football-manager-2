@@ -5,25 +5,28 @@ for(const file of ["www/game-database.js","www/game-core.js","www/game-match-eng
 const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";S.fixtures=[{id:88001,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار",round:"اختبار"}];
 const team=G.squad(1),starters=team.filter(p=>p.starter&&!p.injured&&!p.suspension),bench=team.filter(p=>!p.starter&&!p.injured&&!p.suspension);
 assert.equal(starters.length,11,"Test requires a full starting eleven");assert.ok(bench.length>=6,"Test requires six eligible substitutes");
-bench.slice(0,6).forEach(p=>{p.primaryPosition="CB";p.pos="DEF";});
 assert.equal(G.beginLiveMatch(88001).success,true,"Match should begin");
 const m=S.liveMatch;assert.equal(m.lineups[1].length,11,"Live lineup should contain eleven players");
 const keeperOut=m.lineups[1].find(id=>team.find(p=>p.id===id).primaryPosition==="GK");
-const rejected=G.substituteLiveMatch(keeperOut,bench[0].id);
+const outfieldSub=bench.find(p=>p.primaryPosition!=="GK");
+assert.ok(keeperOut&&outfieldSub,"Test requires goalkeeper and outfield options");
+const rejected=G.substituteLiveMatch(keeperOut,outfieldSub.id);
 assert.ok(rejected.error&&rejected.error.includes("مركز البديل غير مناسب"),"Goalkeeper must not be replaced by an outfield player");
 assert.equal(m.substitutions[1],0,"Rejected position mismatch must not consume a substitution");
 for(let n=0;n<5;n++){
- const outId=m.lineups[1].find(id=>["CB","LB","RB"].includes(team.find(p=>p.id===id).primaryPosition));
- assert.ok(outId,"A defender must remain available for substitution "+(n+1));
- assert.equal(G.substituteLiveMatch(outId,bench[n].id).success,true,"Compatible defender substitution "+(n+1)+" should succeed");
- assert.equal(team.find(p=>p.id===outId).starter,false,"Outgoing player must leave the club starting XI");
- assert.equal(bench[n].starter,true,"Incoming substitute must become a club starter");
+ const outId=m.lineups[1].find(id=>team.find(p=>p.id===id).primaryPosition!=="GK");
+ assert.ok(outId,"An outfield player must remain available for substitution "+(n+1));
+ const outgoing=team.find(p=>p.id===outId),incoming=bench[n];
+ incoming.primaryPosition=outgoing.primaryPosition;incoming.pos=outgoing.pos;
+ assert.equal(G.substituteLiveMatch(outId,incoming.id).success,true,"Position-compatible substitution "+(n+1)+" should succeed");
+ assert.equal(outgoing.starter,false,"Outgoing player must leave the club starting XI");
+ assert.equal(incoming.starter,true,"Incoming substitute must become a club starter");
  assert.equal(team.filter(p=>p.starter).length,11,"Club starting XI must remain at eleven");
 }
 assert.equal(m.substitutions[1],5,"Five substitutions should be counted");
 assert.equal(m.lineups[1].length,11,"Team must retain eleven players after five substitutions");
 assert.ok(bench.slice(0,5).every(p=>p.starter),"All five incoming substitutes must be adopted into the starting XI");
-const sixthOut=m.lineups[1].find(id=>["CB","LB","RB"].includes(team.find(p=>p.id===id).primaryPosition));
+const sixthOut=m.lineups[1].find(id=>team.find(p=>p.id===id).primaryPosition!=="GK");
 const sixth=G.substituteLiveMatch(sixthOut,bench[5].id);
 assert.ok(sixth.error&&sixth.error.includes("الحد الأقصى"),"Sixth substitution must be rejected by the five-substitution limit");
 assert.equal(team.filter(p=>p.starter).length,11,"Persistent starting XI must still contain eleven players");
