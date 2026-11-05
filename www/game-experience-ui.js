@@ -1,7 +1,7 @@
 // Visual dashboard and interactive match centre for Football Manager 2
 (() => {
  const G=window.FM2;if(!G||G.experienceUiLoaded)return;const S=G.state,$=s=>document.querySelector(s);
- let page=S.liveMatch?"match":"home";
+ let page=S.liveMatch?"match":"home",selectedSubOut=null;
  const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
  const num=n=>new Intl.NumberFormat("ar-TN").format(Math.round(n||0));
  const card=h=>'<div class="ex-card">'+h+'</div>';
@@ -37,6 +37,12 @@
   return '<div class="ex-match-banner"><span>LIVE MATCH CENTRE</span><b>'+esc(m.minute)+"′</b></div>"+
    '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/90*100)+'%"></i></div><small>'+m.minute+' من 90 دقيقة</small></div>'+
    section(m.minute===45?"استراحة بين الشوطين":"قرارات المدرب",card('<p class="ex-muted">'+(m.minute===45?"غيّر أسلوبك قبل انطلاق الشوط الثاني.":"اختر تعليماتك للفترة القادمة.")+'</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي")+btn("متوازن","step:متوازن")+btn("دفاعي","step:دفاعي")+btn("ضغط عالٍ","step:ضغط عالٍ")+'</div>'))+
+   ((m.minute>0&&m.minute<90&&m.minute%15===0)?section("التبديلات",card((()=>{
+      const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),starters=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),bench=team.filter(p=>!ids.includes(p.id)&&!p.injured&&!p.suspension),used=(m.substitutions&&m.substitutions[S.clubId])||0;
+      if(used>=5)return '<p class="ex-muted">استهلكت التبديلات الخمسة المسموح بها.</p>';
+      if(selectedSubOut===null)return '<p class="ex-muted">اختر لاعباً أساسياً لإخراجه، ثم اختر البديل. المتبقي: '+(5-used)+'</p>'+starters.map(p=>btn("خروج: "+esc(p.name),"sub-out:"+p.id,"mini")).join("");
+      return '<p class="ex-muted">اختر بديلاً للاعب '+esc((team.find(p=>p.id===selectedSubOut)||{}).name||"")+' · المتبقي: '+(5-used)+'</p>'+bench.map(p=>btn("دخول: "+esc(p.name),"sub-in:"+p.id,"mini")).join("")+btn("إلغاء الاختيار","sub-cancel","mini");
+    })())): "")+
    section("أحداث المباراة",card('<div class="ex-events">'+m.events.slice(0,12).map(e=>'<div><b>'+e.minute+'′</b><span>'+esc(e.text)+'</span></div>').join("")+'</div>'))+
    section("إحصائيات مباشرة",card('<div class="ex-live-stats">'+[['التسديدات',m.homeShots,m.awayShots],['على المرمى',m.homeOnTarget,m.awayOnTarget],['الاستحواذ',m.homePossession+"%",(100-m.homePossession)+"%"],['الركنيات',m.cornersHome,m.cornersAway]].map(x=>'<div><b>'+x[1]+'</b><span>'+x[0]+'</span><b>'+x[2]+'</b></div>').join("")+'</div>'));
  }
@@ -79,6 +85,9 @@
   if(k==="set-formation"){G.me().formation=id;G.me().familiarity=Math.max(25,G.me().familiarity-5);G.save();render();return}
   if(k==="open-match"){page="match";if(!S.liveMatch&&fixture()&&fixture().date<=S.date)G.beginLiveMatch(fixture().id);render();return}
   if(k==="begin-match"){const r=G.beginLiveMatch(fixture()?.id);if(r.error)alert(r.error);page="match";render();return}
+  if(k==="sub-out"){selectedSubOut=Number(id);render();return}
+  if(k==="sub-cancel"){selectedSubOut=null;render();return}
+  if(k==="sub-in"){if(selectedSubOut===null)return;const r=G.substituteLiveMatch(selectedSubOut,Number(id));selectedSubOut=null;if(r.error)alert(r.error);render();return}
   if(k==="step"){const r=G.stepLiveMatch(id);if(r.error)alert(r.error);if(r.finished){page="match";render();setTimeout(()=>alert("انتهت المباراة. النتيجة: "+r.match.homeGoals+" - "+r.match.awayGoals),30);return}render();return}
   if(k==="advance"){G.advance(Number(id));if(S.liveMatch)page="match";render();return}
   if(k==="focus"){const p=S.players.find(x=>x.id===Number(id));if(p){p.focus=val==="إلغاء"?null:val;G.save()}render();return}
