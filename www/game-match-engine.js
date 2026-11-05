@@ -75,6 +75,14 @@
     }
     S.liveMatch=null;G.save();
   }
+  function positionGroup(p){
+    const pos=p&&(p.primaryPosition||p.pos);
+    if(pos==="GK")return "GK";
+    if(["CB","LB","RB","DEF"].includes(pos))return "DEF";
+    if(["DM","CM","AM","MID"].includes(pos))return "MID";
+    if(["LW","RW","ST","FWD"].includes(pos))return "FWD";
+    return null;
+  }
   function substitute(outId,inId){
     const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
     if(m.minute>=90)return {error:"انتهت المباراة ولا يمكن إجراء تبديل الآن."};
@@ -84,6 +92,8 @@
     const out=S.players.find(p=>p.id===Number(outId)&&p.clubId===id),inn=S.players.find(p=>p.id===Number(inId)&&p.clubId===id);
     if(!out||!inn||!lineup.includes(out.id)||lineup.includes(inn.id))return {error:"اختيار التبديل غير صالح."};
     if(inn.injured||inn.suspension)return {error:"لا يمكن إشراك لاعب مصاب أو موقوف."};
+    const outGroup=positionGroup(out),inGroup=positionGroup(inn);
+    if(!outGroup||!inGroup||outGroup!==inGroup)return {error:"مركز البديل غير مناسب. اختر لاعباً من نفس خط اللعب: "+({GK:"حراسة المرمى",DEF:"الدفاع",MID:"الوسط",FWD:"الهجوم"}[outGroup]||"المركز نفسه")+"."};
     lineup[lineup.indexOf(out.id)]=inn.id;
     // Persist the live substitution in the club starting XI for future matches.
     out.starter=false;
