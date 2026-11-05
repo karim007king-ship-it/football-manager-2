@@ -1,0 +1,26 @@
+const fs=require("fs"),vm=require("vm"),store=new Map();
+const localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v))};
+const window={};const context={window,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(context);
+vm.runInContext(fs.readFileSync("www/game-database.js","utf8"),context);
+const DB=window.FM2Database,check=DB.validate();
+if(!check.valid)throw Error("Database validation: "+check.errors.join("; "));
+if(check.clubCount!==24||check.playerCount!==696||check.freeAgentCount!==120)throw Error("Incorrect database size");
+const a=DB.createWorld("2026-11-05"),b=DB.createWorld("2026-11-05");
+if(a.players.some((p,i)=>p.name!==b.players[i].name||p.ovr!==b.players[i].ovr))throw Error("Generation is not deterministic");
+if(new Set(a.clubs.map(x=>x.id)).size!==24||new Set(a.players.map(x=>x.id)).size!==696)throw Error("Duplicate IDs");
+if(a.clubs.filter(x=>x.divisionId===1).length!==12||a.clubs.filter(x=>x.divisionId===2).length!==12)throw Error("Incorrect divisions");
+vm.runInContext(fs.readFileSync("www/game-core.js","utf8"),context);
+const G=window.FM2,S=G.state;
+if(S.clubs.length!==24||S.players.length!==696||G.squad(1).length!==24)throw Error("Expanded world not loaded");
+if(S.players.filter(p=>p.clubId===null).length!==120)throw Error("Free agents missing");
+for(const club of S.clubs){const squad=G.squad(club.id);if(squad.filter(p=>p.starter).length!==11)throw Error("Starting XI count invalid for "+club.id);if(!squad.some(p=>p.starter&&p.pos==="FWD"))throw Error("Starting XI lacks forward");}
+G.schedule();
+const one=S.fixtures.filter(f=>f.competition==="الدوري"&&f.divisionId===1),two=S.fixtures.filter(f=>f.competition==="الدوري"&&f.divisionId===2);
+if(one.length!==132||two.length!==132)throw Error("Expected 132 fixtures in each division");
+if(one.some(f=>S.clubs.find(c=>c.id===f.home).divisionId!==1||S.clubs.find(c=>c.id===f.away).divisionId!==1))throw Error("Division 1 cross fixture");
+if(two.some(f=>S.clubs.find(c=>c.id===f.home).divisionId!==2||S.clubs.find(c=>c.id===f.away).divisionId!==2))throw Error("Division 2 cross fixture");
+if(G.standings().length!==24)throw Error("Standings missing clubs");
+store.set("fm2-career-v2",JSON.stringify({version:2,career:true,clubId:1,clubs:[{id:1,name:"فريق قديم",short:"قديم",budget:123456,wageBudget:1000}],players:[{id:1,name:"لاعب قديم",clubId:1,pos:"MID",ovr:50}],date:"2026-01-01",season:2026,day:1,fixtures:[],history:[],finance:[]}));
+const oldWindow={FM2Database:DB},oldContext={window:oldWindow,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(oldContext);vm.runInContext(fs.readFileSync("www/game-core.js","utf8"),oldContext);
+if(oldWindow.FM2.state.clubs.length!==1||oldWindow.FM2.state.players[0].name!=="لاعب قديم")throw Error("Existing career overwritten");
+console.log("PASS: 24 clubs, 2 divisions, 696 stable players, 120 free agents, 24-player squads, 11 starters, division fixtures, and legacy save preservation");
