@@ -52,11 +52,13 @@
     const home=G.club(f.home),away=G.club(f.away);
     const attendance=Math.round((home.capacity||30000)*Math.max(.35,Math.min(.95,.55+(home.confidence||60)/250+(S.mediaReputation||50)/600-(home.ticket||10)/180)));
     G.transaction(home.id,(home.ticket||10)*attendance,"مداخيل مباراة تفاعلية");
+    const suspendedBefore=new Set(S.players.filter(p=>(p.clubId===home.id||p.clubId===away.id)&&Number(p.suspension)>0).map(p=>p.id));
     [[home.id,m.homeGoals],[away.id,m.awayGoals]].forEach(([id,goals])=>{
       const starters=G.squad(id).filter(p=>p.starter&&!p.injured&&!p.suspension);
-      starters.forEach(p=>{p.apps=(p.apps||0)+1;p.form=Math.max(30,Math.min(100,(p.form||65)+G.rand(-2,4)));if(Math.random()<.008){p.injured=true;p.injuryDays=G.rand(3,20)}if(Math.random()<.025)p.suspension=1});
+      starters.forEach(p=>{p.apps=(p.apps||0)+1;p.form=Math.max(30,Math.min(100,(p.form||65)+G.rand(-2,4)));if(Math.random()<.008){p.injured=true;p.injuryDays=G.rand(3,20)}if(Math.random()<.025)p.suspension=Math.max(1,Number(p.suspension)||0)});
       for(let i=0;i<goals;i++){const scorers=starters.filter(p=>p.pos==="FWD"||p.pos==="MID");if(scorers.length){const p=G.pick(scorers);p.goals=(p.goals||0)+1}}
     });
+    suspendedBefore.forEach(pid=>{const p=S.players.find(x=>x.id===pid);if(p)p.suspension=Math.max(0,Number(p.suspension)-1)});
     if(m.homeGoals>m.awayGoals)G.transaction(home.id,180000,"منحة فوز");
     else if(m.homeGoals===m.awayGoals)G.transaction(home.id,90000,"منحة تعادل");
     if(m.awayGoals>m.homeGoals)G.transaction(away.id,180000,"منحة فوز خارج الأرض");
