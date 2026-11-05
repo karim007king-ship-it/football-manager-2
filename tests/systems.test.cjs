@@ -45,8 +45,8 @@ for(const choice of ["هجومي","متوازن","ضغط عالٍ","متوازن
 if(S.liveMatch||nextMatch.status!=="played")throw Error("Interactive match did not finish");
 if(!S.matchReports.some(r=>r.fixtureId===nextMatch.id))throw Error("Interactive match report missing");
 const oldYear=Number(S.date.slice(0,4));
-S.fixtures=[];
 S.date=oldYear+"-12-31";
+S.fixtures=[{id:++S.fixtureSeq,date:S.date,home:1,away:2,hg:0,ag:0,status:"played",competition:"الدوري",round:"الجولة الأخيرة"}];
 const expiring=G.squad().find(x=>x.id===player.id);
 expiring.contract=2;
 G.advance(2);
