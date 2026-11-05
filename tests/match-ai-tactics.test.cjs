@@ -21,6 +21,7 @@ function setup(){
 {
  const {G,S,m,opponentId}=setup();
  G.stepLiveMatch("متوازن",15);G.stepLiveMatch("متوازن",15);
+ m.minute=45;
  m.homeGoals=1;m.awayGoals=0;
  G.stepLiveMatch("متوازن",15);
  assert.equal(m.tactics[opponentId].style,"لعب مباشر","AI should become more attacking when trailing");
