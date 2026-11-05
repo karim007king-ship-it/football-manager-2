@@ -9,6 +9,7 @@ on:
       - 'package.json'
       - '.github/workflows/build-apk.yml'
       - 'tests/**'
+      - 'scripts/**'
 
 jobs:
   build:
@@ -33,6 +34,8 @@ jobs:
         run: npx cap add android
       - name: Sync web game
         run: npx cap sync android
+      - name: Generate Android launcher icons
+        run: python3 scripts/prepare-android-icons.py
       - name: Increase Gradle distribution download timeout
         run: |
           mkdir -p android/gradle/wrapper
