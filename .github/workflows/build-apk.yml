@@ -44,6 +44,10 @@ jobs:
           else
             echo 'networkTimeout=120000' >> android/gradle/wrapper/gradle-wrapper.properties
           fi
+      - name: Configure persistent debug signing key
+        run: |
+          mkdir -p "$HOME/.android"
+          base64 --decode scripts/debug.keystore.b64 > "$HOME/.android/debug.keystore"
       - name: Build debug APK
         run: |
           cd android
