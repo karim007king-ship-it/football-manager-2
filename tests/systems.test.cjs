@@ -31,12 +31,23 @@ const offer={id:999,type:"offer",playerId:seller.id,amount:1000,resolved:false};
 S.inbox.unshift(offer);
 G.respondToMail(999,"accept");
 if(seller.clubId!==null||!S.transferHistory.length)throw Error("Transfer acceptance/history failed");
-// The transfer test may have sold a starter; restore a complete eligible XI before testing live kickoff.
-if(G.squad().filter(p=>p.starter&&!p.injured&&!p.suspension).length<11){const replacement=G.squad().find(p=>!p.starter&&!p.injured&&!p.suspension&&p.pos===seller.pos);if(replacement)replacement.starter=true;}
+// Normalize both test teams to an eligible XI: one goalkeeper and ten outfielders.
+// This also handles random injuries produced by the earlier simulated day.
+function prepareTestLineup(clubId){
+  const eligible=G.squad(clubId).filter(p=>!p.injured&&!p.suspension);
+  const keeper=eligible.find(p=>p.pos==="GK");
+  const outfield=eligible.filter(p=>p.pos!=="GK").slice(0,10);
+  if(!keeper||outfield.length!==10)throw Error("Unable to prepare an eligible test lineup for club "+clubId);
+  const selected=new Set([keeper.id,...outfield.map(p=>p.id)]);
+  G.squad(clubId).forEach(p=>p.starter=selected.has(p.id));
+}
 // Interactive match engine: pause on match day, play six explicit 15-minute segments, and verify report persistence.
 vm.runInContext(fs.readFileSync("www/game-match-engine.js","utf8"),context);
 G.schedule();
-const nextMatch=S.fixtures.find(f=>f.home===S.clubId||f.away===S.clubId);
+const nextMatch=S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+if(!nextMatch)throw Error("No upcoming fixture found for the test club");
+prepareTestLineup(nextMatch.home);
+prepareTestLineup(nextMatch.away);
 S.date=nextMatch.date;
 const paused=G.advance(1);
 if(!paused.paused||!S.liveMatch)throw Error("Match day did not pause for interactive play");
