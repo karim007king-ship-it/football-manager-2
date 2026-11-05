@@ -25,4 +25,21 @@ S.fixtures=[{id:++S.fixtureSeq,date:S.date,home:1,away:2,competition:"الدور
 G.advance(1);
 if(suspended.apps!==0)throw Error("Suspended player incorrectly appeared in the match");
 if(suspended.suspension!==0)throw Error("One-match suspension did not clear after the next fixture");
-console.log("PASS: weekly wage accounting, one-time confidence changes, unique fixture IDs, and match-based suspensions");
+// Training assignment must not grant instant growth; weekly session applies progression and condition effects.
+S.fixtures=[];
+S.players.forEach(p=>{p.focus=null;p.fatigue=0});
+const trainee=G.squad(1).find(p=>p.pos==="FWD"&&p.attributes&&Number.isFinite(p.attributes.finishing));
+if(!trainee)throw Error("Training test requires a forward with skill attributes");
+club.budget=100000;
+const finishingBefore=trainee.attributes.finishing,trainingBudgetBefore=club.budget;
+trainee.focus="تسديد";
+if(trainee.attributes.finishing!==finishingBefore)throw Error("Assigning a focus must not instantly improve attributes");
+S.day=1;
+G.advance(6);
+if(trainee.trainingProgress&&Object.values(trainee.trainingProgress).some(v=>v>0))throw Error("Training progressed before the weekly session");
+G.advance(1);
+if(!trainee.trainingProgress||!Object.values(trainee.trainingProgress).some(v=>v>0)||trainee.attributes.finishing<finishingBefore)throw Error("Weekly training did not add skill progress");
+if(club.budget!==trainingBudgetBefore-800)throw Error("Weekly individual training must charge exactly 800 TND");
+if((trainee.fatigue||0)<5)throw Error("A completed training session must add fatigue");
+if(G.strength(1).atk<=0)throw Error("Team strength should remain calculable after training");
+console.log("PASS: weekly wage accounting, confidence, fixture IDs, suspensions, and training progression");
