@@ -33,6 +33,14 @@ jobs:
         run: npx cap add android
       - name: Sync web game
         run: npx cap sync android
+      - name: Increase Gradle distribution download timeout
+        run: |
+          mkdir -p android/gradle/wrapper
+          if grep -q '^networkTimeout=' android/gradle/wrapper/gradle-wrapper.properties; then
+            sed -i 's/^networkTimeout=.*/networkTimeout=120000/' android/gradle/wrapper/gradle-wrapper.properties
+          else
+            echo 'networkTimeout=120000' >> android/gradle/wrapper/gradle-wrapper.properties
+          fi
       - name: Build debug APK
         run: |
           cd android
