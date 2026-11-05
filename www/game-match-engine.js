@@ -6,6 +6,29 @@
   const addDays=(d,n)=>{const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
   const dayDiff=(a,b)=>Math.max(0,Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000));
   const ownFixture=()=>S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  function buildPitch(m){
+    const groups=["GK","DEF","MID","FWD"],home=[],away=[];
+    for(const [teamId,target,reverse] of [[m.home,home,false],[m.away,away,true]]){
+      const players=(m.lineups[teamId]||[]).map(id=>S.players.find(p=>p.id===id)).filter(Boolean);
+      for(const group of groups){
+        const list=players.filter(p=>positionGroup(p)===group);
+        const base=({GK:8,DEF:27,MID:50,FWD:73})[group];
+        list.forEach((p,i)=>target.push({id:p.id,name:p.name,team:teamId,x:reverse?100-base:base,y:(i+1)*100/(list.length+1)}));
+      }
+    }
+    m.pitch={ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:home,awayPlayers:away,minute:0};
+  }
+  function movePitch(m,minute){
+    const p=m.pitch;
+    const homeHasBall=Math.random()<(Number(m.homePossession)||50)/100;
+    p.possession=homeHasBall?m.home:m.away;
+    p.ballX=Math.max(4,Math.min(96,p.ballX+(homeHasBall?1:-1)*(4+Math.random()*13)));
+    p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*22-11)));
+    p.phase=homeHasBall?(p.ballX>=67?"الثلث الهجومي":p.ballX<=33?"الثلث الدفاعي":"وسط الملعب"):(p.ballX<=33?"الثلث الهجومي":p.ballX>=67?"الثلث الدفاعي":"وسط الملعب");
+    p.minute=minute;
+    for(const player of p.homePlayers)player.x=Math.max(7,Math.min(93,player.x+(homeHasBall?0.6:-0.45)));
+    for(const player of p.awayPlayers)player.x=Math.max(7,Math.min(93,player.x+(homeHasBall?-0.45:0.6)));
+  }
   function begin(f){
     if(!f||f.status!=="scheduled")return {error:"المباراة غير متاحة"};
     if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
@@ -22,6 +45,7 @@
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
       passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
+    buildPitch(m);
     const opponentId=f.home===S.clubId?f.away:f.home;
     m.tactics[opponentId]={formation:(G.club(opponentId).formation||"4-4-2"),style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
     m.aiLastUpdateMinute=0;
