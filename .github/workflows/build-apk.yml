@@ -2,7 +2,7 @@ name: Build Football Manager 2 APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, fm2-apk-foundation]
+    branches: [main, fm2-apk-foundation, fm2-full-engine]
     paths:
       - 'www/**'
       - 'capacitor.config.json'
@@ -24,6 +24,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Validate game JavaScript
+        run: node --check www/game-core.js && node --check www/game-ui.js
       - name: Install dependencies
         run: npm install
       - name: Add Android platform
