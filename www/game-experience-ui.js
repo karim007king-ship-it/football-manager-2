@@ -42,7 +42,10 @@
  }
  function training(){
   const players=G.squad().slice().sort((a,b)=>a.pos.localeCompare(b.pos));
-  return section("مركز التدريب",card('<p class="ex-muted">حدّد برنامجاً فردياً للاعب. تؤثر الحصص الأسبوعية في التطور والميزانية واللياقة.</p>'+players.map(p=>'<div class="ex-player"><div><b>'+esc(p.name)+'</b><small>'+({GK:"حارس",DEF:"دفاع",MID:"وسط",FWD:"هجوم"}[p.pos])+' · '+p.ovr+'/'+p.potential+' · '+(p.focus||"دون برنامج")+'</small>'+bar("الفورمة",p.form||65)+'</div><div class="ex-training-actions">'+["تسديد","تمرير","دفاع","سرعة","بدني"].map(x=>btn(x,"focus:"+p.id+":"+x,"mini")).join("")+'</div></div>').join("")))+section("تدريب جماعي",card('<p>الانسجام الحالي: '+G.me().familiarity+'%</p>'+btn("حصة تكتيكية جماعية","team-training","gold")));
+  return section("مركز التدريب",card('<p class="ex-muted">اختر تخصص اللاعب. تُنفّذ الحصة آلياً مرة أسبوعياً عند تقدم اليوم، وتكلف 800 د.ت لكل لاعب. اختيار البرنامج وحده لا يمنح نقاطاً.</p>'+players.map(p=>{
+   const a=p.attributes||{},focus=p.focus||"دون برنامج";
+   return '<div class="ex-player"><div><b>'+esc(p.name)+'</b><small>'+({GK:"حارس",DEF:"دفاع",MID:"وسط",FWD:"هجوم"}[p.pos])+' · التقييم '+p.ovr+'/'+p.potential+' · البرنامج: '+focus+'</small><small>اللياقة '+(Number.isFinite(Number(p.fitness))?Math.round(p.fitness):85)+'% · الإرهاق '+(Number(p.fatigue)||0)+'%</small>'+bar("الفورمة",p.form||65)+bar("اللياقة",p.fitness??85,"green")+'<small>المهارات: تسديد '+(a.finishing??"—")+' · تمرير '+(a.passing??"—")+' · دفاع '+(a.tackling??"—")+' · سرعة '+(a.pace??"—")+'</small></div><div class="ex-training-actions">'+["تسديد","تمرير","دفاع","سرعة","بدني","حراسة"].map(x=>btn(x,"focus:"+p.id+":"+x,"mini")).join("")+btn("إلغاء البرنامج","focus:"+p.id+":إلغاء","mini")+'</div></div>';
+  }).join("")))+section("تدريب جماعي",card('<p>الانسجام الحالي: '+G.me().familiarity+'%</p>'+btn("حصة تكتيكية جماعية","team-training","gold")));
  }
  function tactics(){
   const c=G.me();
@@ -78,7 +81,7 @@
   if(k==="begin-match"){const r=G.beginLiveMatch(fixture()?.id);if(r.error)alert(r.error);page="match";render();return}
   if(k==="step"){const r=G.stepLiveMatch(id);if(r.error)alert(r.error);if(r.finished){page="match";render();setTimeout(()=>alert("انتهت المباراة. النتيجة: "+r.match.homeGoals+" - "+r.match.awayGoals),30);return}render();return}
   if(k==="advance"){G.advance(Number(id));if(S.liveMatch)page="match";render();return}
-  if(k==="focus"){const p=S.players.find(x=>x.id===Number(id));if(p){p.focus=val;G.save()}render();return}
+  if(k==="focus"){const p=S.players.find(x=>x.id===Number(id));if(p){p.focus=val==="إلغاء"?null:val;G.save()}render();return}
   if(k==="team-training"){if(G.me().budget<5000){alert("الميزانية لا تكفي للحصة الجماعية.");return}G.transaction(S.clubId,-5000,"حصة تدريب تكتيكية جماعية");G.me().familiarity=Math.min(100,G.me().familiarity+8);G.save();render();return}
   if(k==="press"){const c=G.me();if(id==="promise"){c.confidence=Math.max(0,c.confidence-1);S.mediaReputation=Math.min(100,(S.mediaReputation||50)+2)}if(id==="protect"){c.confidence=Math.min(100,c.confidence+2);S.mediaReputation=Math.min(100,(S.mediaReputation||50)+1)}if(id==="responsible"){c.confidence=Math.min(100,c.confidence+1);S.mediaReputation=Math.min(100,(S.mediaReputation||50)+2)}if(id==="referee"){c.confidence=Math.max(0,c.confidence-2);S.mediaReputation=Math.max(0,(S.mediaReputation||50)-3)}S.inbox.unshift({id:S.inboxSeq++,type:"media",title:"تصريح صحفي جديد",body:"اتخذت قراراً في المؤتمر الصحفي. السمعة الإعلامية الآن "+S.mediaReputation+"/100.",date:S.date,read:false});G.save();render();return}
   if(k==="ticket"){G.me().ticket=Math.max(3,Math.min(80,(G.me().ticket||10)+(id==="up"?2:-2)));G.save();render();return}
