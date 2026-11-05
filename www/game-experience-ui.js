@@ -1,0 +1,117 @@
+// Visual dashboard and interactive match centre for Football Manager 2
+(() => {
+ const G=window.FM2;if(!G||G.experienceUiLoaded)return;const S=G.state,$=s=>document.querySelector(s);
+ let page=S.liveMatch?"match":"home";
+ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+ const num=n=>new Intl.NumberFormat("ar-TN").format(Math.round(n||0));
+ const card=h=>'<div class="ex-card">'+h+'</div>';
+ const section=(t,h)=>'<section class="ex-section"><h2>'+t+'</h2>'+h+'</section>';
+ const btn=(t,a,c="")=>'<button class="ex-btn '+c+'" data-ex-act="'+a+'">'+t+'</button>';
+ const pct=n=>Math.max(0,Math.min(100,Number(n)||0));
+ const fixture=()=>S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+ const bar=(label,value,color="gold")=>'<div class="ex-meter-label"><span>'+label+'</span><b>'+value+'%</b></div><div class="ex-meter"><i class="'+color+'" style="width:'+pct(value)+'%"></i></div>';
+ function home(){
+  const c=G.me(),f=fixture(),table=G.standings(),rank=table.findIndex(x=>x.id===S.clubId)+1,points=table.find(x=>x.id===S.clubId)?.pts||0;
+  const next=f?'<div class="ex-fixture"><div class="ex-fixture-top"><span>'+esc(f.competition)+' · '+esc(f.round)+'</span><b>'+esc(f.date)+'</b></div><div class="ex-versus"><div><span class="ex-crest">⚽</span><b>'+esc(G.club(f.home).short)+'</b></div><strong>VS</strong><div><span class="ex-crest">⚽</span><b>'+esc(G.club(f.away).short)+'</b></div></div><div class="ex-fixture-bottom">'+(f.date<=S.date?btn("افتح مركز المباراة","open-match","gold"):('<span>تبقى '+Math.max(0,Math.round((new Date(f.date)-new Date(S.date))/86400000))+' أيام</span>'))+'</div></div>':'<p>لا توجد مباراة مجدولة.</p>';
+  return '<div class="ex-hero"><div class="ex-hero-shade"></div><div class="ex-hero-content"><span class="ex-kicker">FOOTBALL MANAGER 2 · CAREER MODE</span><h1>'+esc(c.name)+'</h1><p>إدارة النادي تبدأ من هنا</p><div class="ex-hero-chips"><span>الموسم '+S.season+'</span><span>'+esc(S.date)+'</span><span>المركز '+rank+'/8</span></div></div></div>'+
+   '<div class="ex-kpis"><div><small>الميزانية</small><b>'+num(c.budget)+'</b><small>دينار تونسي</small></div><div><small>قوة الفريق</small><b>'+G.strength(c.id).atk.toFixed(0)+'</b><small>تقييم هجومي</small></div><div><small>النقاط</small><b>'+points+'</b><small>في الدوري</small></div></div>'+
+   section("المباراة القادمة",card(next))+
+   section("مؤشرات النادي",card(bar("ثقة مجلس الإدارة",c.confidence)+bar("انسجام الفريق",c.familiarity,"green")+bar("السمعة الإعلامية",S.mediaReputation??50)))+
+   section("مركز الإدارة",'<div class="ex-shortcuts">'+btn("👥 الفريق","base:team")+btn("🎯 التكتيكات","tactics")+btn("🏋️ التدريب","training")+btn("🎙️ الصحافة","press")+btn("🏟️ الجماهير","fans")+btn("📨 الرسائل","base:inbox")+'</div>')+
+   section("تقدم في المسيرة",card('<div class="ex-time-actions">'+btn("يوم واحد","advance:1")+btn("أسبوع","advance:7")+btn("حتى المباراة القادمة","advance:30","gold")+'</div><p class="ex-muted">'+esc(S.message||"اختر قرارك التالي لإدارة النادي.")+'</p>'));
+ }
+ function match(){
+  let m=S.liveMatch;
+  if(!m){const f=fixture();return section("مركز المباراة",card(f?'<div class="ex-fixture"><small>'+esc(f.competition)+' · '+esc(f.round)+' · '+esc(f.date)+'</small><div class="ex-versus"><b>'+esc(G.club(f.home).short)+'</b><strong>VS</strong><b>'+esc(G.club(f.away).short)+'</b></div><p>'+(f.date<=S.date?"موعد المباراة حان. ابدأ التحضير.":"المباراة لم يحن موعدها بعد.")+'</p>'+btn("تهيئة المباراة","begin-match","gold")+'</div>':'لا توجد مباراة قادمة.'));}
+  const h=G.club(m.home),a=G.club(m.away),userHome=m.home===S.clubId;
+  return '<div class="ex-match-banner"><span>LIVE MATCH CENTRE</span><b>'+esc(m.minute)+"′</b></div>"+
+   '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/90*100)+'%"></i></div><small>'+m.minute+' من 90 دقيقة</small></div>'+
+   section(m.minute===45?"استراحة بين الشوطين":"قرارات المدرب",card('<p class="ex-muted">'+(m.minute===45?"غيّر أسلوبك قبل انطلاق الشوط الثاني.":"اختر تعليماتك للفترة القادمة.")+'</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي")+btn("متوازن","step:متوازن")+btn("دفاعي","step:دفاعي")+btn("ضغط عالٍ","step:ضغط عالٍ")+'</div>'))+
+   section("أحداث المباراة",card('<div class="ex-events">'+m.events.slice(0,12).map(e=>'<div><b>'+e.minute+'′</b><span>'+esc(e.text)+'</span></div>').join("")+'</div>'))+
+   section("إحصائيات مباشرة",card('<div class="ex-live-stats">'+[['التسديدات',m.homeShots,m.awayShots],['على المرمى',m.homeOnTarget,m.awayOnTarget],['الاستحواذ',m.homePossession+"%",(100-m.homePossession)+"%"],['الركنيات',m.cornersHome,m.cornersAway]].map(x=>'<div><b>'+x[1]+'</b><span>'+x[0]+'</span><b>'+x[2]+'</b></div>').join("")+'</div>'));
+ }
+ function training(){
+  const players=G.squad().slice().sort((a,b)=>a.pos.localeCompare(b.pos));
+  return section("مركز التدريب",card('<p class="ex-muted">حدّد برنامجاً فردياً للاعب. تؤثر الحصص الأسبوعية في التطور والميزانية واللياقة.</p>'+players.map(p=>'<div class="ex-player"><div><b>'+esc(p.name)+'</b><small>'+({GK:"حارس",DEF:"دفاع",MID:"وسط",FWD:"هجوم"}[p.pos])+' · '+p.ovr+'/'+p.potential+' · '+(p.focus||"دون برنامج")+'</small>'+bar("الفورمة",p.form||65)+'</div><div class="ex-training-actions">'+["تسديد","تمرير","دفاع","سرعة","بدني"].map(x=>btn(x,"focus:"+p.id+":"+x,"mini")).join("")+'</div></div>').join("")))+section("تدريب جماعي",card('<p>الانسجام الحالي: '+G.me().familiarity+'%</p>'+btn("حصة تكتيكية جماعية","team-training","gold")));
+ }
+ function tactics(){
+  const c=G.me();
+  return section("غرفة التكتيك",card('<p class="ex-muted">اختر أسلوب اللعب والتشكيلة. تتغير قوة الفريق حسب الخطة والانسجام.</p><h3>أسلوب اللعب</h3><div class="ex-shortcuts">'+["متوازن","هجومي","دفاعي","استحواذ","مرتدات"].map(x=>btn(x,"set-tactic:"+x,c.tactic===x?"gold":"")).join("")+'</div><h3>التشكيلة</h3><div class="ex-shortcuts">'+["4-4-2","4-3-3","4-2-3-1","3-5-2"].map(x=>btn(x,"set-formation:"+x,c.formation===x?"gold":"")).join("")+'</div><p class="ex-muted">الانسجام: '+c.familiarity+'%</p>'));
+ }
+ function press(){
+  return section("المركز الإعلامي",card('<div class="ex-press-head"><span>🎙️</span><div><b>المؤتمر الصحفي</b><small>قراراتك تؤثر في ثقة الإدارة والسمعة الإعلامية.</small></div></div><div class="ex-shortcuts">'+btn("نعد الجماهير بالفوز","press:promise")+btn("نحمي اللاعبين من الضغط","press:protect")+btn("نحمّل أنفسنا المسؤولية","press:responsible")+btn("ننتقد التحكيم","press:referee")+'</div><p class="ex-muted">السمعة الإعلامية الحالية: '+(S.mediaReputation??50)+'/100</p>'));
+ }
+ function fans(){
+  const c=G.me(),mood=pct(Math.round(c.confidence*.65+(S.mediaReputation??50)*.2+(G.standings().findIndex(x=>x.id===S.clubId)===0?15:0)));
+  return section("الجماهير والملعب",card('<div class="ex-fans"><div class="ex-fans-icon">🏟️</div><div><b>'+esc(c.name)+'</b><small>سعة الملعب: '+num(c.capacity)+'</small><small>سعر التذكرة الحالي: '+num(c.ticket)+' د.ت</small></div></div>'+bar("رضا الجماهير",mood)+
+   '<div class="ex-shortcuts">'+btn("رفع سعر التذكرة","ticket:up")+btn("خفض سعر التذكرة","ticket:down")+'</div><p class="ex-muted">سعر التذكرة يؤثر في دخل المباريات وإقبال الجمهور.</p>'));
+ }
+ function render(){
+  const views={home,match,training,press,fans,tactics};$("#app").innerHTML='<div class="ex-page-head"><span>⚽ مدير كرة القدم 2</span><small>'+esc(G.me().short||"النادي")+'</small></div>'+views[page]();
+  document.querySelectorAll("[data-ex-tab]").forEach(x=>x.classList.toggle("active",x.dataset.exTab===page));
+  document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",page==="home"&&x.dataset.tab==="home"));
+ }
+ function action(a){
+  const [k,id,val]=a.split(":");
+  if(k==="tactics"){page="tactics";render();return}
+  if(k==="set-tactic"){G.me().tactic=id;G.save();render();return}
+  if(k==="set-formation"){G.me().formation=id;G.me().familiarity=Math.max(25,G.me().familiarity-5);G.save();render();return}
+  if(k==="open-match"){page="match";if(!S.liveMatch&&fixture()&&fixture().date<=S.date)G.beginLiveMatch(fixture().id);render();return}
+  if(k==="begin-match"){const r=G.beginLiveMatch(fixture()?.id);if(r.error)alert(r.error);page="match";render();return}
+  if(k==="step"){const r=G.stepLiveMatch(id);if(r.error)alert(r.error);if(r.finished){page="match";render();setTimeout(()=>alert("انتهت المباراة. النتيجة: "+r.match.homeGoals+" - "+r.match.awayGoals),30);return}render();return}
+  if(k==="advance"){G.advance(Number(id));if(S.liveMatch)page="match";render();return}
+  if(k==="focus"){const p=S.players.find(x=>x.id===Number(id));if(p){p.focus=val;G.save()}render();return}
+  if(k==="team-training"){if(G.me().budget<5000){alert("الميزانية لا تكفي للحصة الجماعية.");return}G.transaction(S.clubId,-5000,"حصة تدريب تكتيكية جماعية");G.me().familiarity=Math.min(100,G.me().familiarity+8);G.save();render();return}
+  if(k==="press"){const c=G.me();if(id==="promise"){c.confidence=Math.max(0,c.confidence-1);S.mediaReputation=Math.min(100,(S.mediaReputation||50)+2)}if(id==="protect"){c.confidence=Math.min(100,c.confidence+2);S.mediaReputation=Math.min(100,(S.mediaReputation||50)+1)}if(id==="responsible"){c.confidence=Math.min(100,c.confidence+1);S.mediaReputation=Math.min(100,(S.mediaReputation||50)+2)}if(id==="referee"){c.confidence=Math.max(0,c.confidence-2);S.mediaReputation=Math.max(0,(S.mediaReputation||50)-3)}S.inbox.unshift({id:S.inboxSeq++,type:"media",title:"تصريح صحفي جديد",body:"اتخذت قراراً في المؤتمر الصحفي. السمعة الإعلامية الآن "+S.mediaReputation+"/100.",date:S.date,read:false});G.save();render();return}
+  if(k==="ticket"){G.me().ticket=Math.max(3,Math.min(80,(G.me().ticket||10)+(id==="up"?2:-2)));G.save();render();return}
+  if(k==="base"){page=null;if(id==="inbox")document.querySelector('[data-sys-tab="inbox"]')?.click();else document.querySelector('[data-tab="'+id+'"]')?.click();return}
+ }
+ document.addEventListener("click",e=>{
+  const ex=e.target.closest("[data-ex-tab]");if(ex){e.preventDefault();e.stopImmediatePropagation();page=ex.dataset.exTab;render();return}
+  const old=e.target.closest("[data-tab]");if(old&&old.dataset.tab==="home"){e.preventDefault();e.stopImmediatePropagation();page="home";render();return}
+  const a=e.target.closest("[data-ex-act]");if(a){e.preventDefault();e.stopImmediatePropagation();action(a.dataset.exAct);return}
+ },true);
+ const nav=$("nav");
+ [["match","⚽ المباراة"],["training","🏋️ التدريب"],["press","🎙️ الإعلام"],["fans","🏟️ الجماهير"]].forEach(([id,label])=>{const b=document.createElement("button");b.dataset.exTab=id;b.textContent=label;nav.appendChild(b)});
+ const style=document.createElement("style");style.textContent=`
+ :root{--ex-gold:#e9bf58;--ex-green:#39c889;--ex-line:#294454}
+ body{background:radial-gradient(ellipse at 50% -15%,#1d4651 0,#0a1722 58%,#07111a 100%)}
+ header{background:#08131bea;backdrop-filter:blur(14px);border-bottom:1px solid #294454}
+ main{max-width:920px;padding:12px 12px 105px}
+ .ex-page-head{display:flex;justify-content:space-between;align-items:center;color:var(--ex-gold);font-weight:900;padding:5px 3px 12px}
+ .ex-page-head small{color:#9db5c1}
+ .ex-hero{position:relative;min-height:210px;border-radius:22px;overflow:hidden;margin:4px 0 13px;background:linear-gradient(115deg,#143c38,#102b3a 55%,#182b3a);border:1px solid #41604e;box-shadow:0 15px 32px #0005}
+ .ex-hero:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 34px,#ffffff08 35px 36px),linear-gradient(0deg,#06131ddd,transparent 70%)}
+ .ex-hero:after{content:"⚽";position:absolute;left:7%;top:13%;font-size:112px;opacity:.13;transform:rotate(-17deg)}
+ .ex-hero-content{position:relative;z-index:1;padding:22px 19px}.ex-kicker{font-size:9px;letter-spacing:2px;color:#e9bf58;font-weight:900}
+ .ex-hero h1{font-size:25px;margin:24px 0 4px;color:#fff}.ex-hero p{margin:0;color:#b8cbd1;font-size:12px}
+ .ex-hero-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}.ex-hero-chips span{border:1px solid #ffffff30;background:#07192388;border-radius:20px;padding:5px 10px;font-size:10px}
+ .ex-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 17px}.ex-kpis>div{background:linear-gradient(145deg,#1b3543,#102432);border:1px solid #2d4c5c;border-radius:15px;padding:11px 8px;text-align:center;min-width:0}
+ .ex-kpis small{display:block;color:#9db2be;font-size:10px}.ex-kpis b{display:block;color:#f1c65f;font-size:17px;overflow-wrap:anywhere}
+ .ex-section{margin:17px 0}.ex-section h2{font-size:15px;color:#f2f5f7;margin:0 2px 9px}
+ .ex-card{background:linear-gradient(145deg,#183140,#102331);border:1px solid #2b4a5b;border-radius:17px;padding:13px;box-shadow:0 7px 20px #0002}
+ .ex-muted{font-size:11px;color:#9eb4c0;line-height:1.8}
+ .ex-fixture{padding:3px}.ex-fixture-top,.ex-fixture-bottom{display:flex;justify-content:space-between;align-items:center;color:#a9bdc7;font-size:11px;gap:8px}
+ .ex-versus{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;gap:8px;padding:15px 0}.ex-versus>div{display:grid;gap:6px}.ex-versus b{font-size:17px}.ex-versus>strong{color:#e9bf58;font-size:13px}
+ .ex-crest{display:grid;place-items:center;width:48px;height:48px;margin:auto;border-radius:15px;background:linear-gradient(145deg,#274d5a,#122936);border:1px solid #55707b;font-size:25px}
+ .ex-btn{border:1px solid #3a5a69;background:#223f4d;color:#f4f7f8;border-radius:11px;padding:10px 12px;font-size:12px;font-weight:800;min-height:39px}
+ .ex-btn.gold{background:linear-gradient(135deg,#f1ce70,#d5a63e);color:#17232a;border:0}.ex-btn.mini{padding:6px 8px;min-height:31px;font-size:10px}
+ .ex-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .ex-time-actions{display:flex;gap:7px;flex-wrap:wrap}.ex-time-actions .ex-btn{flex:1}
+ .ex-meter-label{display:flex;justify-content:space-between;font-size:11px;color:#c2d1d8;margin:9px 0 5px}.ex-meter-label b{color:#e9bf58}
+ .ex-meter{height:7px;border-radius:10px;background:#263e4b;overflow:hidden}.ex-meter i{display:block;height:100%;background:linear-gradient(90deg,#2eae79,#8bd59c);border-radius:10px}.ex-meter i.gold{background:linear-gradient(90deg,#bd8c2d,#f1d176)}
+ .ex-match-banner{display:flex;justify-content:space-between;color:#f1c65f;font-size:11px;font-weight:900;padding:7px 3px}
+ .ex-scoreboard{border-radius:20px;background:radial-gradient(ellipse at center,#235044,#102c35 70%);border:1px solid #4a6a55;text-align:center;padding:17px 12px;box-shadow:0 12px 28px #0005}
+ .ex-scoreboard>small{color:#c3d4cb}.ex-score-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:17px 0}.ex-score-teams div{display:grid;gap:6px}.ex-score-teams div span{font-size:28px}.ex-score-teams div b{font-size:15px}.ex-score-teams>strong{font-size:35px;color:#f4d16d}
+ .ex-progress{height:6px;background:#142b30;border-radius:9px;overflow:hidden}.ex-progress i{display:block;height:100%;background:#f1c65f}
+ .ex-scoreboard>small:last-child{display:block;margin-top:8px}
+ .ex-events>div{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #2a4553;font-size:12px}.ex-events>div:last-child{border:0}.ex-events b{color:#e9bf58;min-width:34px}.ex-events span{line-height:1.6}
+ .ex-live-stats>div{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;padding:10px;border-bottom:1px solid #2a4553}.ex-live-stats>div:last-child{border:0}.ex-live-stats span{color:#9db4c0;font-size:11px}
+ .ex-player{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:12px 0;border-bottom:1px solid #2a4553}.ex-player small{display:block;color:#9db4c0;font-size:10px}.ex-training-actions{display:flex;gap:5px;flex-wrap:wrap}
+ .ex-press-head,.ex-fans{display:flex;align-items:center;gap:12px;margin-bottom:15px}.ex-press-head>span,.ex-fans-icon{font-size:35px}.ex-press-head small,.ex-fans small{display:block;color:#9db4c0;font-size:11px;margin-top:4px}
+ nav{overflow-x:auto;justify-content:flex-start;gap:2px;scrollbar-width:none}nav button{min-width:max-content;padding:8px 9px;font-size:10px}nav button.active{color:#f1c65f;border-top:2px solid #e9bf58}
+ @media(min-width:650px){.ex-player{grid-template-columns:1fr auto;align-items:center}.ex-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}.ex-hero{min-height:235px}.ex-hero h1{font-size:31px}}
+ @media(max-width:380px){.ex-kpis{gap:5px}.ex-kpis>div{padding:9px 4px}.ex-kpis b{font-size:14px}.ex-hero h1{font-size:21px}.ex-score-teams div b{font-size:12px}}
+ `;document.head.appendChild(style);
+ G.experienceUiLoaded=true;render();
+})();

@@ -31,6 +31,19 @@ const offer={id:999,type:"offer",playerId:seller.id,amount:1000,resolved:false};
 S.inbox.unshift(offer);
 G.respondToMail(999,"accept");
 if(seller.clubId!==null||!S.transferHistory.length)throw Error("Transfer acceptance/history failed");
+// Interactive match engine: pause on match day, play six 15-minute segments, and verify report persistence.
+vm.runInContext(fs.readFileSync("www/game-match-engine.js","utf8"),context);
+G.schedule();
+const nextMatch=S.fixtures.find(f=>f.home===S.clubId||f.away===S.clubId);
+S.date=nextMatch.date;
+const paused=G.advance(1);
+if(!paused.paused||!S.liveMatch)throw Error("Match day did not pause for interactive play");
+for(const choice of ["هجومي","متوازن","ضغط عالٍ","متوازن","دفاعي","متوازن"]){
+  const step=G.stepLiveMatch(choice);
+  if(step.error)throw Error("Interactive match step failed: "+step.error);
+}
+if(S.liveMatch||nextMatch.status!=="played")throw Error("Interactive match did not finish");
+if(!S.matchReports.some(r=>r.fixtureId===nextMatch.id))throw Error("Interactive match report missing");
 const oldYear=Number(S.date.slice(0,4));
 S.fixtures=[];
 S.date=oldYear+"-12-31";
