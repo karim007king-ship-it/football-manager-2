@@ -1,4 +1,5 @@
 // Additional management screens for Football Manager 2
+// Build retry: Gradle wrapper timeout is configured in the workflow.
 (() => {
  const G=window.FM2,S=G.state,$=s=>document.querySelector(s);
  if(!G)return;
