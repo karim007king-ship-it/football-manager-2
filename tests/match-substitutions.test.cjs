@@ -1,0 +1,20 @@
+const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
+const store=new Map(),localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v))};
+const window={},context={window,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(context);
+for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
+const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";S.fixtures=[{id:88001,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار",round:"اختبار"}];
+const team=G.squad(1),starters=team.filter(p=>p.starter&&!p.injured&&!p.suspension),bench=team.filter(p=>!p.starter&&!p.injured&&!p.suspension);
+assert.equal(starters.length,11,"Test requires a full starting eleven");assert.ok(bench.length>=5,"Test requires five eligible substitutes");
+assert.equal(G.beginLiveMatch(88001).success,true,"Match should begin");
+let m=S.liveMatch;assert.equal(m.lineups[1].length,11,"Live lineup should contain eleven players");
+let result=G.stepLiveMatch("متوازن");assert.equal(result.minute,15,"First match interval should end at 15 minutes");
+let currentOut=m.lineups[1][0],incoming=bench[0].id;
+assert.equal(G.substituteLiveMatch(currentOut,incoming).success,true,"First substitution should succeed");
+assert.ok(!m.lineups[1].includes(currentOut)&&m.lineups[1].includes(incoming),"Lineup must replace outgoing player with substitute");
+assert.equal(m.substitutionLog.length,1,"Substitution should be recorded in match log");
+for(let n=1;n<5;n++){const out=m.lineups[1][n],inn=bench[n].id;assert.equal(G.substituteLiveMatch(out,inn).success,true,"Substitution "+(n+1)+" should succeed");}
+assert.equal(m.substitutions[1],5,"Five substitutions should be counted");
+const sixthOut=m.lineups[1][0],sixthIn=team.find(p=>!m.lineups[1].includes(p.id)&&!p.injured&&!p.suspension).id;
+assert.ok(G.substituteLiveMatch(sixthOut,sixthIn).error,"Sixth substitution must be rejected");
+assert.equal(m.lineups[1].length,11,"Team must retain eleven players after substitutions");
+console.log("PASS: live substitutions, lineup tracking, match log, and five-substitution limit");
