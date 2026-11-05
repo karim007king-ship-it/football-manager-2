@@ -55,7 +55,7 @@
   const [kind,id]=x.dataset.act.split(":");
   if(kind==="sell"||kind==="offer"){
    const p=S.players.find(z=>z.id===Number(id));
-   if(p)pendingTransfer={kind,id:p.id,name:p.name,oldClub:p.clubId,value:p.value};
+   if(p)pendingTransfer={kind,id:p.id,name:p.name,oldClub:p.clubId,value:p.value,budgetBefore:G.me().budget};
   }
  },true);
  document.addEventListener("click",e=>{
@@ -65,7 +65,7 @@
     const buying=pendingTransfer.kind==="offer";
     S.transferHistory.unshift({date:S.date,player:pendingTransfer.name,
      from:buying?G.club(pendingTransfer.oldClub)?.name||"نادٍ آخر":G.me().name,
-     to:buying?G.me().name:"نادٍ آخر",fee:buying?Math.round(pendingTransfer.value*1.2):Math.round(pendingTransfer.value*.85),
+     to:buying?G.me().name:"نادٍ آخر",fee:Math.abs(Math.round(G.me().budget-pendingTransfer.budgetBefore)),
      type:buying?"شراء":"بيع"});
     G.save();
    }
