@@ -94,7 +94,8 @@
     });
     const newMatches=S.fixtures.filter(f=>f.status==="played"&&!S.matchReports.some(r=>r.fixtureId===f.id));
     newMatches.forEach(report);
-    if(S.date.slice(0,4)!==beforeDate.slice(0,4))processYear(Number(beforeDate.slice(0,4)),Number(S.date.slice(0,4)));
+    const seasonComplete=S.fixtures.length>0&&S.fixtures.every(f=>f.status==="played");
+    if(seasonComplete){const currentSeason=Number(S.season)||Number(beforeDate.slice(0,4));processYear(currentSeason,currentSeason+1);}
     const weeks=Math.floor((new Date(S.date+"T12:00:00")-new Date(beforeDate+"T12:00:00"))/604800000);
     for(let i=0;i<Math.min(weeks,5);i++)offer();
     if(S.date.slice(5,7)!==beforeDate.slice(5,7))addMail("club","ملخص شهري","الميزانية الحالية: "+money(own().budget).toLocaleString("ar-TN")+" د.ت · ثقة الإدارة "+own().confidence+"%.");
