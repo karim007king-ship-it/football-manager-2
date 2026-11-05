@@ -123,6 +123,6 @@
   };
   G.getReport=id=>S.matchReports.find(r=>r.fixtureId===id)||null;
   G.systemsLoaded=true;
-  addMail("club","مركز الرسائل جاهز","ستظهر هنا عروض الانتقالات والإصابات ونتائج المباريات وأخبار النادي.");
+  if(!S.systemsInitialized){ addMail("club","مركز الرسائل جاهز","ستظهر هنا عروض الانتقالات والإصابات ونتائج المباريات وأخبار النادي."); S.systemsInitialized=true; }
   G.save();
 })();
