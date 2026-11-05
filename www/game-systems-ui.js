@@ -48,7 +48,29 @@
    const r=G.renewContract(p.id,years,wage);if(r.error)alert(r.error);else alert("تم تجديد العقد.");render();
   }
  }
+ let pendingTransfer=null;
  document.addEventListener("click",e=>{
+  const x=e.target.closest("[data-act]");
+  if(!x)return;
+  const [kind,id]=x.dataset.act.split(":");
+  if(kind==="sell"||kind==="offer"){
+   const p=S.players.find(z=>z.id===Number(id));
+   if(p)pendingTransfer={kind,id:p.id,name:p.name,oldClub:p.clubId,value:p.value};
+  }
+ },true);
+ document.addEventListener("click",e=>{
+  if(pendingTransfer){
+   const p=S.players.find(z=>z.id===pendingTransfer.id);
+   if(p&&p.clubId!==pendingTransfer.oldClub){
+    const buying=pendingTransfer.kind==="offer";
+    S.transferHistory.unshift({date:S.date,player:pendingTransfer.name,
+     from:buying?G.club(pendingTransfer.oldClub)?.name||"نادٍ آخر":G.me().name,
+     to:buying?G.me().name:"نادٍ آخر",fee:buying?Math.round(pendingTransfer.value*1.2):Math.round(pendingTransfer.value*.85),
+     type:buying?"شراء":"بيع"});
+    G.save();
+   }
+   pendingTransfer=null;
+  }
   const t=e.target.closest("[data-sys-tab]");if(t){active=t.dataset.sysTab;render();return}
   const a=e.target.closest("[data-sys-act]");if(a)action(a.dataset.sysAct);
  });
