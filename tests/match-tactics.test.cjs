@@ -1,0 +1,33 @@
+const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
+function playWith(config){
+ const store=new Map(),localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v))};
+ const math=Object.create(Math);math.random=()=>0.5;
+ const window={},context={window,localStorage,Date,Math:math,Intl,Number,String,JSON,console};vm.createContext(context);
+ for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
+ const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";
+ S.fixtures=[{id:99001,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار",round:"اختبار"}];
+ assert.equal(G.beginLiveMatch(99001).success,true);
+ const m=S.liveMatch;
+ for(const [key,value] of Object.entries(config||{}))assert.equal(G.setLiveTactics(key,value).success,true,"Tactic "+key+" should be accepted");
+ const result=G.stepLiveMatch("متوازن");assert.equal(result.finished,false);
+ return {possession:m.homePossession,passes:m.passesHome,tactics:m.tactics[1],fatigue:G.squad(1).filter(p=>m.lineups[1].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0)};
+}
+const baseline=playWith({});
+const possession=playWith({style:"استحواذ"});
+assert.ok(possession.possession>=baseline.possession+7,"Possession style must materially increase possession");
+assert.ok(possession.passes>baseline.passes,"Possession style must increase passing volume");
+const direct=playWith({style:"لعب مباشر"});
+assert.ok(direct.possession<possession.possession,"Direct play must reduce possession relative to possession style");
+const highPress=playWith({pressing:"عالٍ"}),lowPress=playWith({pressing:"منخفض"});
+assert.ok(highPress.possession>lowPress.possession,"High pressing must change the team's possession profile");
+assert.ok(highPress.fatigue>lowPress.fatigue,"High pressing must cause more player fatigue than low pressing");
+const attacking=playWith({formation:"4-3-3"}),defensive=playWith({formation:"3-5-2"});
+assert.ok(attacking.possession>defensive.possession,"Formation choice must affect match dynamics");
+const invalidStore=new Map(),localStorage={getItem:k=>invalidStore.get(k)||null,setItem:(k,v)=>invalidStore.set(k,String(v))};
+const window={},context={window,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(context);
+for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
+const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";S.fixtures=[{id:99002,date:S.date,home:1,away:2,status:"scheduled"}];G.beginLiveMatch(99002);
+const rejected=G.setLiveTactics("pressing","غير معروف");
+assert.ok(rejected.error,"Unknown tactical values must be rejected");
+assert.equal(S.liveMatch.tactics[1].pressing,"متوسط","Invalid choices must not alter tactical state");
+console.log("PASS: live formation, playing style, pressing, passing volume, fatigue, and tactical validation");
