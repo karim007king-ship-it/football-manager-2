@@ -36,7 +36,7 @@ window.FM2 = (() => {
  const SAVE_KEY="fm2-career-v2", BACKUP_KEY="fm2-career-v2-backup", ARCHIVE_KEY="fm2-career-v2-archive", RECOVERY_KEY="fm2-career-v2-recovery";
  let saveRecoveryBlocked=false, saveRecoveryMessage="";
  function validSaveData(x){
-  return Boolean(x&&x.version===2&&Array.isArray(x.clubs)&&x.clubs.length>0&&Array.isArray(x.players)&&x.players.length>0&&x.clubs.some(c=>c.id===x.clubId)&&typeof x.date==="string"&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.date));
+  return Boolean(x&&x.version===2&&Array.isArray(x.clubs)&&x.clubs.length>0&&Array.isArray(x.players)&&x.players.length>0&&x.clubs.some(c=>c.id===x.clubId)&&typeof x.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date));
  }
  function save(){
   if(saveRecoveryBlocked)return false;
