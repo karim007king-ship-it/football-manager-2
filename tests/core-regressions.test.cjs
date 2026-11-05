@@ -28,7 +28,7 @@ if(suspended.suspension!==0)throw Error("One-match suspension did not clear afte
 // Training assignment must not grant instant growth; weekly session applies progression and condition effects.
 S.fixtures=[];
 S.players.forEach(p=>{p.focus=null;p.fatigue=0});
-const trainee=G.squad(1).find(p=>p.pos==="FWD"&&p.attributes&&Number.isFinite(p.attributes.finishing));
+const trainee=G.squad(1).find(p=>p.pos==="FWD"&&p.attributes&&Number.isFinite(p.attributes.finishing)&&p.attributes.finishing<95);
 if(!trainee)throw Error("Training test requires a forward with skill attributes");
 G.squad(1).forEach(p=>p.wage=0);
 club.budget=100000;
