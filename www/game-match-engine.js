@@ -10,7 +10,7 @@
     if(!f||f.status!=="scheduled")return {error:"المباراة غير متاحة"};
     if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
-      homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
+      homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
       passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
     const opponentId=f.home===S.clubId?f.away:f.home;
@@ -84,13 +84,19 @@
         else if(Math.random()<.32){m.cornersAway++;m.events.unshift({minute,text:"ركنية للفريق الضيف."})}
       }
     }
-    m.minute=end;
-    const userPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)-oppFormationEffect.pos-oppStyleEffect.pos-oppPressEffect.pos+(Math.random()*8-4))));
-    m.homePossession=userHome?userPoss:100-userPoss;
+    if(!Number.isFinite(Number(m.possessionMinutes))){m.possessionMinutes=start;m.possessionHomeTotal=(Number(m.homePossession)||50)*start;}
     const possessionFactor=styleEffect.pos>0?1.12:styleEffect.pos<0?.92:1;
-    m.passesHome+=Math.round((end-start)*5.5*(m.homePossession/50)*(userHome?possessionFactor:1));
-    m.passesAway+=Math.round((end-start)*5.5*((100-m.homePossession)/50)*(userHome?1:possessionFactor));
-    activePlayers.forEach(p=>{p.fatigue=Math.min(100,(Number(p.fatigue)||0)+pressEffect.fatigue);});
+    for(let minute=start+1;minute<=end;minute++){
+      const minuteUserPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)-oppFormationEffect.pos-oppStyleEffect.pos-oppPressEffect.pos+(Math.random()*8-4))));
+      const minuteHomePoss=userHome?minuteUserPoss:100-minuteUserPoss;
+      m.possessionHomeTotal+=minuteHomePoss;
+      m.possessionMinutes++;
+      m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
+      m.passesHome+=Math.round(5.5*(minuteHomePoss/50)*(userHome?possessionFactor:1));
+      m.passesAway+=Math.round(5.5*((100-minuteHomePoss)/50)*(userHome?1:possessionFactor));
+    }
+    m.minute=end;
+    activePlayers.forEach(p=>{p.fatigue=Math.min(100,(Number(p.fatigue)||0)+pressEffect.fatigue*(end-start));});
     if(m.minute===45&&start<45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
     if(m.minute===90){finish(f,m);return {finished:true,match:m};}
     G.save();return {finished:false,halfTime:m.minute===45&&start<45,minute:m.minute,match:m};
@@ -112,7 +118,7 @@
     if(m.awayGoals>m.homeGoals)G.transaction(away.id,180000,"منحة فوز خارج الأرض");
     S.history.unshift({date:S.date,competition:f.competition,home:home.name,away:away.name,score:m.homeGoals+" - "+m.awayGoals,round:f.round});
     m.attendance=attendance;m.status="finished";m.finishedDate=S.date;
-    if(G.createMatchReport)G.createMatchReport(f);
+    if(G.createMatchReport)G.createMatchReport(f,m);
     if(G.progressCompetitions)G.progressCompetitions();
     if(f.home===S.clubId||f.away===S.clubId){
       const won=(f.home===S.clubId?f.hg>f.ag:f.ag>f.hg),draw=f.hg===f.ag;
