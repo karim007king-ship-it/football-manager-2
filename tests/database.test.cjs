@@ -20,6 +20,14 @@ if(one.length!==132||two.length!==132)throw Error("Expected 132 fixtures in each
 if(one.some(f=>S.clubs.find(c=>c.id===f.home).divisionId!==1||S.clubs.find(c=>c.id===f.away).divisionId!==1))throw Error("Division 1 cross fixture");
 if(two.some(f=>S.clubs.find(c=>c.id===f.home).divisionId!==2||S.clubs.find(c=>c.id===f.away).divisionId!==2))throw Error("Division 2 cross fixture");
 if(G.standings().length!==24)throw Error("Standings missing clubs");
+const savedBudget=G.me().budget;
+const start=G.startNewCareer();
+if(!start.success||!G.hasArchivedCareer()||G.state.clubs.length!==24)throw Error("Safe new-career creation failed");
+G.me().budget-=1234;G.save();
+const restore=G.swapArchivedCareer();
+if(!restore.success||G.me().budget!==savedBudget)throw Error("Archived career restore failed");
+const swapBack=G.swapArchivedCareer();
+if(!swapBack.success||G.me().budget!==savedBudget-1234)throw Error("Career slot swap failed");
 store.set("fm2-career-v2",JSON.stringify({version:2,career:true,clubId:1,clubs:[{id:1,name:"فريق قديم",short:"قديم",budget:123456,wageBudget:1000}],players:[{id:1,name:"لاعب قديم",clubId:1,pos:"MID",ovr:50}],date:"2026-01-01",season:2026,day:1,fixtures:[],history:[],finance:[]}));
 const oldWindow={FM2Database:DB},oldContext={window:oldWindow,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(oldContext);vm.runInContext(fs.readFileSync("www/game-core.js","utf8"),oldContext);
 if(oldWindow.FM2.state.clubs.length!==1||oldWindow.FM2.state.players[0].name!=="لاعب قديم")throw Error("Existing career overwritten");

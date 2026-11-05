@@ -34,6 +34,27 @@ window.FM2 = (() => {
   return {version:2,career:false,clubId:1,clubs,players,date:dateNow(),season:new Date().getFullYear(),day:1,fixtures:[],history:[],finance:[],message:"اختر نادياً لبدء مسيرتك.",sacked:false};
  }
  function save(){localStorage.setItem("fm2-career-v2",JSON.stringify(state))}
+ function replaceState(next){Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,next);}
+ function startNewCareer(){
+  save();
+  const current=localStorage.getItem("fm2-career-v2");
+  if(current)localStorage.setItem("fm2-career-v2-archive",current);
+  replaceState(create());save();
+  return {success:true};
+ }
+ function swapArchivedCareer(){
+  save();
+  const archived=localStorage.getItem("fm2-career-v2-archive");
+  if(!archived)return {error:"لا توجد مسيرة محفوظة."};
+  let next;try{next=JSON.parse(archived)}catch(e){return {error:"تعذر قراءة المسيرة المحفوظة."}}
+  if(!next||next.version!==2||!Array.isArray(next.clubs)||!Array.isArray(next.players))return {error:"ملف المسيرة المحفوظة غير صالح."};
+  const current=localStorage.getItem("fm2-career-v2");
+  if(current)localStorage.setItem("fm2-career-v2-archive",current);
+  replaceState(next);save();
+  return {success:true};
+ }
+ function hasArchivedCareer(){return Boolean(localStorage.getItem("fm2-career-v2-archive"));}
+
  function load(){try{const x=JSON.parse(localStorage.getItem("fm2-career-v2"));if(x&&x.version===2){state=x;return}}catch(e){}state=create();save()}
  const club=id=>state.clubs.find(c=>c.id===id), me=()=>club(state.clubId), squad=id=>state.players.filter(p=>p.clubId===(id||state.clubId));
  const wages=id=>squad(id).reduce((n,p)=>n+p.wage,0);
@@ -67,5 +88,5 @@ window.FM2 = (() => {
  function progressCompetitions(){progress("الكأس","ربع النهائي","نصف النهائي");progress("الكأس","نصف النهائي","النهائي");progress("قارية","نصف النهائي","النهائي")}
  function advance(days){if(state.sacked)return {error:"تمت إقالتك"};const played=[];for(let d=0;d<days;d++){state.clubs.forEach(c=>{const cost=wages(c.id)/364;c.budget-=cost;if(c.id===state.clubId)state.finance.unshift({date:state.date,amount:-cost,description:"رواتب اللاعبين",balance:c.budget});c.familiarity=Math.min(100,c.familiarity+1)});state.players.forEach(p=>{if(p.injured&&p.injuryDays>0&&!--p.injuryDays)p.injured=false;if(p.suspension>0)p.suspension--});state.fixtures.filter(f=>f.status==="scheduled"&&f.date<=state.date).forEach(f=>played.push(play(f)));progressCompetitions();if(state.day%7===0)state.players.filter(p=>p.focus&&p.clubId).forEach(p=>{const owner=club(p.clubId);if(owner.budget>=800){owner.budget-=800;if(p.ovr<p.potential&&Math.random()<.35)p.ovr++;p.form=Math.min(100,p.form+2);if(p.clubId===state.clubId)state.finance.unshift({date:state.date,amount:-800,description:"تدريب "+p.name,balance:owner.budget})}});state.date=addDays(state.date,1);state.day++}const recent=state.fixtures.filter(f=>f.status==="played"&&(f.home===state.clubId||f.away===state.clubId)).slice(-5);me().confidence=Math.max(0,Math.min(100,me().confidence+recent.reduce((n,f)=>n+((f.home===state.clubId?f.hg>f.ag:f.ag>f.hg)?2:(f.home===state.clubId?f.hg<f.ag:f.ag<f.hg)?-3:0),0)));if(!me().confidence)state.sacked=true;state.message=played.length?"تمت محاكاة "+played.length+" مباراة.":"مرّت "+days+" أيام دون مباراة لفريقك.";save();return {played:played.length}}
  load();
- return {get state(){return state},club,me,squad,wages,transaction,strength,standings,schedule,advance,progressCompetitions,save,load,create,play,rand,pick};
+ return {get state(){return state},club,me,squad,wages,transaction,strength,standings,schedule,advance,progressCompetitions,save,load,create,play,rand,pick,startNewCareer,swapArchivedCareer,hasArchivedCareer};
 })();

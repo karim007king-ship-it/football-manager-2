@@ -18,10 +18,11 @@
    section("المباراة القادمة",card(next))+
    section("مؤشرات النادي",card(bar("ثقة مجلس الإدارة",c.confidence)+bar("انسجام الفريق",c.familiarity,"green")+bar("السمعة الإعلامية",S.mediaReputation??50)))+
    section("مركز الإدارة",'<div class="ex-shortcuts">'+btn("👥 الفريق","base:team")+btn("🎯 التكتيكات","tactics")+btn("🏋️ التدريب","training")+btn("🎙️ الصحافة","press")+btn("🏟️ الجماهير","fans")+btn("📨 الرسائل","base:inbox")+'</div>')+
-   section("تقدم في المسيرة",card('<div class="ex-time-actions">'+btn("يوم واحد","advance:1")+btn("أسبوع","advance:7")+btn("حتى المباراة القادمة","advance:30","gold")+'</div><p class="ex-muted">'+esc(S.message||"اختر قرارك التالي لإدارة النادي.")+'</p>'));
+   section("تقدم في المسيرة",card('<div class="ex-time-actions">'+btn("يوم واحد","advance:1")+btn("أسبوع","advance:7")+btn("حتى المباراة القادمة","advance:30","gold")+'</div><p class="ex-muted">'+esc(S.message||"اختر قرارك التالي لإدارة النادي.")+'</p>'))+
+   section("إدارة المسيرة",card(btn("بدء مسيرة جديدة بقاعدة البيانات الموسعة","new-career","gold")+(G.hasArchivedCareer()?btn("تبديل إلى المسيرة المحفوظة","swap-career"):"")));
  }
  function setup(){
-  return section("اختر النادي لبدء مسيرتك",'<div class="ex-clubs">'+S.clubs.map(c=>'<button class="ex-club" data-ex-act="club:'+c.id+'"><span>⚽</span><b>'+esc(c.name)+'</b><small>السمعة '+c.rep+' · '+num(c.budget)+' د.ت</small><small>'+esc(c.objective)+'</small></button>').join("")+'</div>');
+  return section("اختر النادي لبدء مسيرتك",'<div class="ex-clubs">'+S.clubs.map(c=>'<button class="ex-club" data-ex-act="club:'+c.id+'"><span>⚽</span><b>'+esc(c.name)+'</b><small>'+esc(c.divisionName||"الدوري")+' · السمعة '+c.rep+' · '+num(c.budget)+' د.ت</small><small>'+esc(c.objective)+'</small></button>').join("")+'</div>')+(G.hasArchivedCareer()?section("مسيرة محفوظة",card(btn("العودة إلى المسيرة السابقة","swap-career"))):"");
  }
  function team(){
   const starters=G.squad().filter(p=>p.starter).sort((a,b)=>["GK","DEF","MID","FWD"].indexOf(a.pos)-["GK","DEF","MID","FWD"].indexOf(b.pos));
@@ -63,6 +64,8 @@
  }
  function action(a){
   const [k,id,val]=a.split(":");
+  if(k==="new-career"){if(!confirm("سيتم حفظ مسيرتك الحالية في الأرشيف ثم إنشاء مسيرة جديدة بقاعدة البيانات الموسعة. هل تريد المتابعة؟"))return;G.startNewCareer();page="home";render();return}
+  if(k==="swap-career"){if(!confirm("سيتم التبديل بين المسيرة الحالية والمسيرة المحفوظة. هل تريد المتابعة؟"))return;const result=G.swapArchivedCareer();if(result.error)alert(result.error);page="home";render();return}
   if(k==="club"){S.clubId=Number(id);S.career=true;S.date=new Date().toISOString().slice(0,10);G.schedule();S.message="بدأت مسيرتك مع "+G.me().name;G.save();page="home";render();return}
   if(k==="team"){page="team";render();return}
   if(k==="starter"){const p=S.players.find(x=>x.id===Number(id));if(!p)return;if(!p.starter&&G.squad().filter(x=>x.starter).length>=11){alert("لا يمكن اختيار أكثر من 11 لاعباً.");return}if(p.injured||p.suspension){alert("لا يمكن إشراك لاعب مصاب أو موقوف.");return}p.starter=!p.starter;G.save();render();return}
