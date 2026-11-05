@@ -27,7 +27,7 @@ for(const divisionId of divisions){
 const lastLeague=league.reduce((latest,f)=>f.date>latest?f.date:latest,"");
 const cup=S.fixtures.filter(f=>f.competition==="الكأس");
 const continental=S.fixtures.filter(f=>f.competition==="قارية");
-assert.ok(cup.length>0&&cup.every(f=>f.date>Date.parse?true:true));
+assert.ok(cup.length>0,"cup quarter-finals must be generated");
 const cupDate=cup[0].date,continentalDate=continental[0].date;
 const add=(d,n)=>{const x=new Date(d+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
 assert.equal(cupDate,add(lastLeague,7),"cup quarter-finals must start after the league schedule");
