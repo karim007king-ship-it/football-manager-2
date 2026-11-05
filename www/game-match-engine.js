@@ -8,6 +8,7 @@
   const ownFixture=()=>S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
   function begin(f){
     if(!f||f.status!=="scheduled")return {error:"المباراة غير متاحة"};
+    if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
       passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن"};
@@ -65,7 +66,7 @@
     if(G.progressCompetitions)G.progressCompetitions();
     if(f.home===S.clubId||f.away===S.clubId){
       const won=(f.home===S.clubId?f.hg>f.ag:f.ag>f.hg),draw=f.hg===f.ag;
-      home.confidence=Math.max(0,Math.min(100,home.confidence+(won?3:draw?0:-3)));
+      G.me().confidence=Math.max(0,Math.min(100,G.me().confidence+(won?3:draw?0:-3)));
       S.lastMatchId=f.id;
     }
     S.liveMatch=null;G.save();

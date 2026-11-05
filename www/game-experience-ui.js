@@ -20,6 +20,15 @@
    section("مركز الإدارة",'<div class="ex-shortcuts">'+btn("👥 الفريق","base:team")+btn("🎯 التكتيكات","tactics")+btn("🏋️ التدريب","training")+btn("🎙️ الصحافة","press")+btn("🏟️ الجماهير","fans")+btn("📨 الرسائل","base:inbox")+'</div>')+
    section("تقدم في المسيرة",card('<div class="ex-time-actions">'+btn("يوم واحد","advance:1")+btn("أسبوع","advance:7")+btn("حتى المباراة القادمة","advance:30","gold")+'</div><p class="ex-muted">'+esc(S.message||"اختر قرارك التالي لإدارة النادي.")+'</p>'));
  }
+ function setup(){
+  return section("اختر النادي لبدء مسيرتك",'<div class="ex-clubs">'+S.clubs.map(c=>'<button class="ex-club" data-ex-act="club:'+c.id+'"><span>⚽</span><b>'+esc(c.name)+'</b><small>السمعة '+c.rep+' · '+num(c.budget)+' د.ت</small><small>'+esc(c.objective)+'</small></button>').join("")+'</div>');
+ }
+ function team(){
+  const starters=G.squad().filter(p=>p.starter).sort((a,b)=>["GK","DEF","MID","FWD"].indexOf(a.pos)-["GK","DEF","MID","FWD"].indexOf(b.pos));
+  const roster=G.squad().slice().sort((a,b)=>b.ovr-a.ovr);
+  return section("التشكيلة الأساسية",card('<div class="ex-pitch">'+starters.map(p=>'<div><b>'+esc(p.name.split(" ")[0])+'</b><small>'+p.ovr+' · '+p.pos+'</small></div>').join("")+'</div><p class="ex-muted">اللاعبون الأساسيون: '+starters.length+'/11</p>'))+
+   section("قائمة اللاعبين",card(roster.map(p=>'<div class="ex-player"><div><b>'+esc(p.name)+'</b><small>'+({GK:"حارس",DEF:"دفاع",MID:"وسط",FWD:"هجوم"}[p.pos])+' · '+p.age+' سنة · تقييم '+p.ovr+' / '+p.potential+'</small><small>'+(p.injured?"مصاب "+(p.injuryDays||0)+" يوم":p.suspension?"موقوف":"العقد "+p.contract+" سنة")+' · الفورمة '+(p.form||65)+'</small></div><div class="ex-training-actions">'+btn(p.starter?"إخراج من التشكيلة":"إشراك","starter:"+p.id,"mini")+btn("تجديد العقد","renew:"+p.id,"mini")+'</div></div>').join(""))));
+ }
  function match(){
   let m=S.liveMatch;
   if(!m){const f=fixture();return section("مركز المباراة",card(f?'<div class="ex-fixture"><small>'+esc(f.competition)+' · '+esc(f.round)+' · '+esc(f.date)+'</small><div class="ex-versus"><b>'+esc(G.club(f.home).short)+'</b><strong>VS</strong><b>'+esc(G.club(f.away).short)+'</b></div><p>'+(f.date<=S.date?"موعد المباراة حان. ابدأ التحضير.":"المباراة لم يحن موعدها بعد.")+'</p>'+btn("تهيئة المباراة","begin-match","gold")+'</div>':'لا توجد مباراة قادمة.'));}
@@ -47,12 +56,17 @@
    '<div class="ex-shortcuts">'+btn("رفع سعر التذكرة","ticket:up")+btn("خفض سعر التذكرة","ticket:down")+'</div><p class="ex-muted">سعر التذكرة يؤثر في دخل المباريات وإقبال الجمهور.</p>'));
  }
  function render(){
-  const views={home,match,training,press,fans,tactics};$("#app").innerHTML='<div class="ex-page-head"><span>⚽ مدير كرة القدم 2</span><small>'+esc(G.me().short||"النادي")+'</small></div>'+views[page]();
+  if(!S.career){$("#app").innerHTML='<div class="ex-page-head"><span>⚽ مدير كرة القدم 2</span><small>اختر ناديك</small></div>'+setup();return;}
+  const views={home,match,training,press,fans,tactics,team};$("#app").innerHTML='<div class="ex-page-head"><span>⚽ مدير كرة القدم 2</span><small>'+esc(G.me().short||"النادي")+'</small></div>'+views[page]();
   document.querySelectorAll("[data-ex-tab]").forEach(x=>x.classList.toggle("active",x.dataset.exTab===page));
   document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",page==="home"&&x.dataset.tab==="home"));
  }
  function action(a){
   const [k,id,val]=a.split(":");
+  if(k==="club"){S.clubId=Number(id);S.career=true;S.date=new Date().toISOString().slice(0,10);G.schedule();S.message="بدأت مسيرتك مع "+G.me().name;G.save();page="home";render();return}
+  if(k==="team"){page="team";render();return}
+  if(k==="starter"){const p=S.players.find(x=>x.id===Number(id));if(!p)return;if(!p.starter&&G.squad().filter(x=>x.starter).length>=11){alert("لا يمكن اختيار أكثر من 11 لاعباً.");return}if(p.injured||p.suspension){alert("لا يمكن إشراك لاعب مصاب أو موقوف.");return}p.starter=!p.starter;G.save();render();return}
+  if(k==="renew"){const p=S.players.find(x=>x.id===Number(id));if(!p)return;const years=Number(prompt("مدة العقد الجديدة (1 إلى 5 سنوات)",3));if(!Number.isInteger(years)||years<1||years>5)return;const wage=Number(prompt("الأجر الأسبوعي الجديد",Math.round(p.wage*1.1)));const result=G.renewContract(p.id,years,wage);if(result.error)alert(result.error);render();return}
   if(k==="tactics"){page="tactics";render();return}
   if(k==="set-tactic"){G.me().tactic=id;G.save();render();return}
   if(k==="set-formation"){G.me().formation=id;G.me().familiarity=Math.max(25,G.me().familiarity-5);G.save();render();return}
@@ -68,7 +82,7 @@
  }
  document.addEventListener("click",e=>{
   const ex=e.target.closest("[data-ex-tab]");if(ex){e.preventDefault();e.stopImmediatePropagation();page=ex.dataset.exTab;render();return}
-  const old=e.target.closest("[data-tab]");if(old&&old.dataset.tab==="home"){e.preventDefault();e.stopImmediatePropagation();page="home";render();return}
+  const old=e.target.closest("[data-tab]");if(old&&old.dataset.tab==="team"){e.preventDefault();e.stopImmediatePropagation();page="team";render();return}if(old&&old.dataset.tab==="home"){e.preventDefault();e.stopImmediatePropagation();page="home";render();return}
   const a=e.target.closest("[data-ex-act]");if(a){e.preventDefault();e.stopImmediatePropagation();action(a.dataset.exAct);return}
  },true);
  const nav=$("nav");
@@ -78,7 +92,7 @@
  body{background:radial-gradient(ellipse at 50% -15%,#1d4651 0,#0a1722 58%,#07111a 100%)}
  header{background:#08131bea;backdrop-filter:blur(14px);border-bottom:1px solid #294454}
  main{max-width:920px;padding:12px 12px 105px}
- .ex-page-head{display:flex;justify-content:space-between;align-items:center;color:var(--ex-gold);font-weight:900;padding:5px 3px 12px}
+  .ex-clubs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.ex-club{display:grid;gap:6px;text-align:right;padding:14px;background:linear-gradient(145deg,#1b3948,#102431);border:1px solid #355768;border-radius:15px;color:#fff}.ex-club span{font-size:23px}.ex-club small{color:#9db4c0;font-size:10px}.ex-pitch{min-height:185px;padding:12px;border:1px solid #6b9878;border-radius:12px;background:repeating-linear-gradient(0deg,#1b6549 0 30px,#1e704f 31px 60px);display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:8px}.ex-pitch>div{min-width:65px;text-align:center;background:#0a2520c9;border:1px solid #c8b66b;border-radius:9px;padding:7px 4px}.ex-pitch b{display:block;font-size:10px}.ex-pitch small{font-size:9px;color:#f2d27a}.ex-page-head{display:flex;justify-content:space-between;align-items:center;color:var(--ex-gold);font-weight:900;padding:5px 3px 12px}
  .ex-page-head small{color:#9db5c1}
  .ex-hero{position:relative;min-height:210px;border-radius:22px;overflow:hidden;margin:4px 0 13px;background:linear-gradient(115deg,#143c38,#102b3a 55%,#182b3a);border:1px solid #41604e;box-shadow:0 15px 32px #0005}
  .ex-hero:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 34px,#ffffff08 35px 36px),linear-gradient(0deg,#06131ddd,transparent 70%)}
