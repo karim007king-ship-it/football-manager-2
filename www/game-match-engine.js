@@ -77,7 +77,7 @@
   }
   function substitute(outId,inId){
     const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
-    if(m.minute<=0||m.minute>=90||m.minute%15!==0)return {error:"التبديلات متاحة بين فترات اللعب فقط."};
+    if(m.minute>=90)return {error:"انتهت المباراة ولا يمكن إجراء تبديل الآن."};
     const id=S.clubId,lineup=m.lineups&&m.lineups[id];
     if(!lineup)return {error:"تعذر العثور على تشكيلة فريقك."};
     if((m.substitutions[id]||0)>=5)return {error:"استهلكت الحد الأقصى: 5 تبديلات."};
