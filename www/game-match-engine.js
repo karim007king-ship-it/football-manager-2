@@ -204,3 +204,4 @@
   G.liveMatchEngineLoaded=true;
   G.save();
 })();
+// Stage 2: live pitch and user-controlled match decisions are developed in isolated, tested increments.
