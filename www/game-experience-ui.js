@@ -36,13 +36,16 @@
   let m=S.liveMatch;
   if(!m){const f=fixture();return section("مركز المباراة",card(f?'<div class="ex-fixture"><small>'+esc(f.competition)+' · '+esc(f.round)+' · '+esc(f.date)+'</small><div class="ex-versus"><b>'+esc(G.club(f.home).short)+'</b><strong>VS</strong><b>'+esc(G.club(f.away).short)+'</b></div><p>'+(f.date<=S.date?"موعد المباراة حان. ابدأ التحضير.":"المباراة لم يحن موعدها بعد.")+'</p>'+btn("تهيئة المباراة","begin-match","gold")+'</div>':'لا توجد مباراة قادمة.'));}
   const h=G.club(m.home),a=G.club(m.away),userHome=m.home===S.clubId;
+  const liveTactics=(m.tactics&&m.tactics[S.clubId])||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
+  const tacticalGroup=(label,key,options)=>'<div class="ex-tactic-group"><b>'+label+'</b><div class="ex-shortcuts">'+options.map(v=>btn(v,"live-tactic:"+key+":"+v,liveTactics[key]===v?"gold":"")).join("")+'</div></div>';
   return '<div class="ex-match-banner"><span>LIVE MATCH CENTRE</span><b>'+esc(m.minute)+"′</b></div>"+
    '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/90*100)+'%"></i></div><small>'+m.minute+' من 90 دقيقة</small></div>'+
    section("التشكيلة الحالية",card((()=>{
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),players=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),groups=[["حارس","GK"],["الدفاع","DEF"],["الوسط","MID"],["الهجوم","FWD"]];
       return '<p class="ex-muted">اللاعبون الموجودون حالياً على أرض الملعب: '+players.length+'/11</p><div class="ex-live-lineup">'+groups.map(([label,pos])=>{const list=players.filter(p=>p.pos===pos);return list.length?'<div class="ex-live-lineup-row"><b>'+label+'</b><div>'+list.map(p=>'<span>'+esc(p.name)+'</span>').join("")+'</div></div>':""}).join("")+'</div>';
     })()))+
-   section(m.minute===45?"استراحة بين الشوطين":"قرارات المدرب",card('<p class="ex-muted">'+(m.minute===45?"غيّر أسلوبك قبل انطلاق الشوط الثاني.":"اختر تعليماتك للفترة القادمة.")+'</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي")+btn("متوازن","step:متوازن")+btn("دفاعي","step:دفاعي")+btn("ضغط عالٍ","step:ضغط عالٍ")+'</div>'))+
+   section(m.minute===45?"استراحة بين الشوطين":"قرارات المدرب",card('<p class="ex-muted">'+(m.minute===45?"غيّر عقلية الفريق قبل انطلاق الشوط الثاني.":"اختر عقلية الفريق للفترة القادمة.")+'</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي")+btn("متوازن","step:متوازن")+btn("دفاعي","step:دفاعي")+btn("ضغط عالٍ","step:ضغط عالٍ")+'</div>'))+
+   section("التكتيك أثناء المباراة",card('<p class="ex-muted">تُطبّق التعديلات فوراً على الفترة التالية، وتؤثر في الهجوم والدفاع والاستحواذ والإرهاق.</p>'+tacticalGroup("الخطة","formation",["4-4-2","4-3-3","4-2-3-1","3-5-2"])+tacticalGroup("أسلوب اللعب","style",["متوازن","استحواذ","مرتدات","لعب مباشر","الأطراف"])+tacticalGroup("الضغط","pressing",["منخفض","متوسط","عالٍ"])+tacticalGroup("خط الدفاع","defensiveLine",["متأخرة","متوسطة","متقدمة"])+tacticalGroup("عرض اللعب","width",["متوازنة","واسعة","ضيقة"])))+
    section("التبديلات",card((()=>{
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),starters=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),substitutedOut=new Set(m.substitutedOut||[]),bench=team.filter(p=>!ids.includes(p.id)&&!substitutedOut.has(p.id)&&!p.injured&&!p.suspension),used=(m.substitutions&&m.substitutions[S.clubId])||0;
       if(used>=5)return '<p class="ex-muted">استهلكت التبديلات الخمسة المسموح بها.</p>';
@@ -95,6 +98,7 @@
   if(k==="sub-out"){selectedSubOut=Number(id);render();return}
   if(k==="sub-cancel"){selectedSubOut=null;render();return}
   if(k==="sub-in"){if(selectedSubOut===null)return;const r=G.substituteLiveMatch(selectedSubOut,Number(id));selectedSubOut=null;if(r.error)alert(r.error);render();return}
+  if(k==="live-tactic"){const r=G.setLiveTactics(id,val);if(r.error)alert(r.error);render();return}
   if(k==="step"){const r=G.stepLiveMatch(id);if(r.error)alert(r.error);if(r.finished){page="match";render();setTimeout(()=>alert("انتهت المباراة. النتيجة: "+r.match.homeGoals+" - "+r.match.awayGoals),30);return}render();return}
   if(k==="advance"){G.advance(Number(id));if(S.liveMatch)page="match";render();return}
   if(k==="focus"){const p=S.players.find(x=>x.id===Number(id));if(p){p.focus=val==="إلغاء"?null:val;G.save()}render();return}
@@ -142,6 +146,7 @@
  .ex-scoreboard>small{color:#c3d4cb}.ex-score-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:17px 0}.ex-score-teams div{display:grid;gap:6px}.ex-score-teams div span{font-size:28px}.ex-score-teams div b{font-size:15px}.ex-score-teams>strong{font-size:35px;color:#f4d16d}
  .ex-progress{height:6px;background:#142b30;border-radius:9px;overflow:hidden}.ex-progress i{display:block;height:100%;background:#f1c65f}
  .ex-scoreboard>small:last-child{display:block;margin-top:8px}
+ .ex-tactic-group{padding:9px 0;border-bottom:1px solid #2a4553}.ex-tactic-group:last-child{border:0}.ex-tactic-group>b{display:block;color:#e9bf58;font-size:11px;margin-bottom:7px}.ex-tactic-group .ex-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
  .ex-live-lineup{display:grid;gap:9px}.ex-live-lineup-row{display:grid;grid-template-columns:65px minmax(0,1fr);gap:8px;align-items:start;padding-bottom:8px;border-bottom:1px solid #2a4553}.ex-live-lineup-row:last-child{border:0;padding-bottom:0}.ex-live-lineup-row>b{color:#e9bf58;font-size:11px;padding-top:5px}.ex-live-lineup-row>div{display:flex;flex-wrap:wrap;gap:5px}.ex-live-lineup-row span{display:inline-block;padding:6px 8px;border-radius:8px;background:#1d493c;border:1px solid #49765c;color:#f2f7f4;font-size:10px;font-weight:700}\n .ex-events>div{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #2a4553;font-size:12px}.ex-events>div:last-child{border:0}.ex-events b{color:#e9bf58;min-width:34px}.ex-events span{line-height:1.6}
  .ex-live-stats>div{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;padding:10px;border-bottom:1px solid #2a4553}.ex-live-stats>div:last-child{border:0}.ex-live-stats span{color:#9db4c0;font-size:11px}
  .ex-player{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:12px 0;border-bottom:1px solid #2a4553}.ex-player small{display:block;color:#9db4c0;font-size:10px}.ex-training-actions{display:flex;gap:5px;flex-wrap:wrap}
