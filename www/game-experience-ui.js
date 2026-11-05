@@ -44,7 +44,7 @@
     })()))+
    section(m.minute===45?"استراحة بين الشوطين":"قرارات المدرب",card('<p class="ex-muted">'+(m.minute===45?"غيّر أسلوبك قبل انطلاق الشوط الثاني.":"اختر تعليماتك للفترة القادمة.")+'</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي")+btn("متوازن","step:متوازن")+btn("دفاعي","step:دفاعي")+btn("ضغط عالٍ","step:ضغط عالٍ")+'</div>'))+
    section("التبديلات",card((()=>{
-      const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),starters=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),bench=team.filter(p=>!ids.includes(p.id)&&!p.injured&&!p.suspension),used=(m.substitutions&&m.substitutions[S.clubId])||0;
+      const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),starters=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),substitutedOut=new Set(m.substitutedOut||[]),bench=team.filter(p=>!ids.includes(p.id)&&!substitutedOut.has(p.id)&&!p.injured&&!p.suspension),used=(m.substitutions&&m.substitutions[S.clubId])||0;
       if(used>=5)return '<p class="ex-muted">استهلكت التبديلات الخمسة المسموح بها.</p>';
       if(selectedSubOut===null)return '<p class="ex-muted">اختر لاعباً أساسياً لإخراجه، ثم اختر بديلاً من خط اللعب نفسه. المتبقي: '+(5-used)+'</p>'+starters.map(p=>btn("خروج: "+esc(p.name)+" · "+positionLabel(p),"sub-out:"+p.id,"mini")).join("");
       const outgoing=team.find(p=>p.id===selectedSubOut),compatible=bench.filter(p=>outgoing&&positionGroup(p)===positionGroup(outgoing));
