@@ -7,9 +7,9 @@ const team=G.squad(1),starters=team.filter(p=>p.starter&&!p.injured&&!p.suspensi
 assert.equal(starters.length,11,"Test requires a full starting eleven");assert.ok(bench.length>=5,"Test requires five eligible substitutes");
 assert.equal(G.beginLiveMatch(88001).success,true,"Match should begin");
 let m=S.liveMatch;assert.equal(m.lineups[1].length,11,"Live lineup should contain eleven players");
-let result=G.stepLiveMatch("متوازن");assert.equal(result.minute,15,"First match interval should end at 15 minutes");
 let currentOut=m.lineups[1][0],incoming=bench[0].id;
-assert.equal(G.substituteLiveMatch(currentOut,incoming).success,true,"First substitution should succeed");
+assert.equal(G.substituteLiveMatch(currentOut,incoming).success,true,"Substitution should be available immediately after kickoff");
+assert.equal(m.minute,0,"A substitution may be made before the first interval");
 assert.ok(!m.lineups[1].includes(currentOut)&&m.lineups[1].includes(incoming),"Lineup must replace outgoing player with substitute");
 assert.equal(m.substitutionLog.length,1,"Substitution should be recorded in match log");
 for(let n=1;n<5;n++){const out=m.lineups[1][n],inn=bench[n].id;assert.equal(G.substituteLiveMatch(out,inn).success,true,"Substitution "+(n+1)+" should succeed");}
