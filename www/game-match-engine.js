@@ -106,6 +106,7 @@
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
     const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
     for(let minute=start+1;minute<=end;minute++){
+      movePitch(m,minute);
       const homeChance=Math.max(.025,Math.min(.20,.075+(homeAtk-awayDef)/420));
       const awayChance=Math.max(.025,Math.min(.20,.075+(awayAtk-homeDef)/420));
       if(Math.random()<homeChance){
