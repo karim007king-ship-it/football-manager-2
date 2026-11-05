@@ -11,7 +11,7 @@
     if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
-      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[],substitutedOut:[]};
+      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
     [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
     G.save();return {success:true};
@@ -22,9 +22,19 @@
     const userHome=m.home===S.clubId, userId=S.clubId, oppId=userHome?m.away:m.home;
     const choiceKey=choice||"متوازن";m.lastChoice=choiceKey;
     const userStrength=G.strength(userId),oppStrength=G.strength(oppId);
-    let attackBoost=choiceKey==="هجومي"?7:choiceKey==="ضغط عالٍ"?4:choiceKey==="دفاعي"?-4:0;
-    let defenceBoost=choiceKey==="دفاعي"?7:choiceKey==="ضغط عالٍ"?-3:choiceKey==="هجومي"?-3:0;
-    const userAtk=userStrength.atk+attackBoost,userDef=userStrength.def+defenceBoost;
+    const tactics=(m.tactics&&m.tactics[userId])||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"};
+    const formationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[tactics.formation]||{atk:0,def:0,pos:0};
+    const styleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[tactics.style]||{atk:0,def:0,pos:0};
+    const pressEffect=({"منخفض":{atk:-1,def:2,pos:-2,fatigue:.35},"متوسط":{atk:0,def:0,pos:0,fatigue:.8},"عالٍ":{atk:1,def:4,pos:4,fatigue:2.1}})[tactics.pressing]||{atk:0,def:0,pos:0,fatigue:.8};
+    const lineEffect=({"متأخرة":{atk:-1,def:3},"متوسطة":{atk:0,def:0},"متقدمة":{atk:1,def:1}})[tactics.defensiveLine]||{atk:0,def:0};
+    const widthEffect=({"متوازنة":{atk:0,def:0},"واسعة":{atk:2,def:-1},"ضيقة":{atk:0,def:2}})[tactics.width]||{atk:0,def:0};
+    const mentalityAtk=choiceKey==="هجومي"?7:choiceKey==="ضغط عالٍ"?4:choiceKey==="دفاعي"?-4:0;
+    const mentalityDef=choiceKey==="دفاعي"?7:choiceKey==="ضغط عالٍ"?-3:choiceKey==="هجومي"?-3:0;
+    const activePlayers=(m.lineups[userId]||[]).map(pid=>S.players.find(p=>p.id===pid)).filter(Boolean);
+    const averageFatigue=activePlayers.length?activePlayers.reduce((n,p)=>n+(Number(p.fatigue)||0),0)/activePlayers.length:0;
+    const fatiguePenalty=Math.min(5,averageFatigue/18);
+    const userAtk=userStrength.atk+mentalityAtk+formationEffect.atk+styleEffect.atk+pressEffect.atk+lineEffect.atk+widthEffect.atk-fatiguePenalty;
+    const userDef=userStrength.def+mentalityDef+formationEffect.def+styleEffect.def+pressEffect.def+lineEffect.def+widthEffect.def-fatiguePenalty*.55;
     const homeAtk=userHome?userAtk:oppStrength.atk, awayAtk=userHome?oppStrength.atk:userAtk;
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
     const start=m.minute,end=Math.min(90,start+15);
@@ -41,10 +51,12 @@
       }
     }
     m.minute=end;
-    const userPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+(choiceKey==="استحواذ"?7:0)+(Math.random()*8-4))));
+    const userPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)+(Math.random()*8-4))));
     m.homePossession=userHome?userPoss:100-userPoss;
-    m.passesHome+=Math.round((end-start)*5.5*(m.homePossession/50));
-    m.passesAway+=Math.round((end-start)*5.5*((100-m.homePossession)/50));
+    const possessionFactor=styleEffect.pos>0?1.12:styleEffect.pos<0?.92:1;
+    m.passesHome+=Math.round((end-start)*5.5*(m.homePossession/50)*(userHome?possessionFactor:1));
+    m.passesAway+=Math.round((end-start)*5.5*((100-m.homePossession)/50)*(userHome?1:possessionFactor));
+    activePlayers.forEach(p=>{p.fatigue=Math.min(100,(Number(p.fatigue)||0)+pressEffect.fatigue);});
     if(m.minute===45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
     if(m.minute===90){finish(f,m);return {finished:true,match:m};}
     G.save();return {finished:false,minute:m.minute,match:m};
@@ -74,6 +86,19 @@
       S.lastMatchId=f.id;
     }
     S.liveMatch=null;G.save();
+  }
+  function setLiveTactics(key,value){
+    const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
+    if(m.minute>=90)return {error:"انتهت المباراة ولا يمكن تعديل التكتيك الآن."};
+    const allowed={formation:["4-4-2","4-3-3","4-2-3-1","3-5-2"],style:["متوازن","استحواذ","مرتدات","لعب مباشر","الأطراف"],pressing:["منخفض","متوسط","عالٍ"],defensiveLine:["متأخرة","متوسطة","متقدمة"],width:["متوازنة","واسعة","ضيقة"]};
+    if(!allowed[key]||!allowed[key].includes(value))return {error:"الخيار التكتيكي غير صالح."};
+    m.tactics=m.tactics||{};
+    m.tactics[S.clubId]=m.tactics[S.clubId]||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
+    if(m.tactics[S.clubId][key]===value)return {success:true,unchanged:true};
+    m.tactics[S.clubId][key]=value;
+    const labels={formation:"الخطة",style:"أسلوب اللعب",pressing:"الضغط",defensiveLine:"خط الدفاع",width:"عرض اللعب"};
+    m.events.unshift({minute:m.minute,text:"🎯 تعديل تكتيكي: "+labels[key]+" — "+value+"."});
+    G.save();return {success:true,tactics:m.tactics[S.clubId]};
   }
   function positionGroup(p){
     const pos=p&&(p.primaryPosition||p.pos);
@@ -126,6 +151,7 @@
   G.beginLiveMatch=id=>begin(S.fixtures.find(f=>f.id===Number(id))||ownFixture());
   G.stepLiveMatch=step;
   G.substituteLiveMatch=substitute;
+  G.setLiveTactics=setLiveTactics;
   G.liveMatchEngineLoaded=true;
   G.save();
 })();
