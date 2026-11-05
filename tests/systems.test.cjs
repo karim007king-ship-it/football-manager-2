@@ -32,7 +32,7 @@ S.inbox.unshift(offer);
 G.respondToMail(999,"accept");
 if(seller.clubId!==null||!S.transferHistory.length)throw Error("Transfer acceptance/history failed");
 // The transfer test may have sold a starter; restore a complete eligible XI before testing live kickoff.
-if(G.squad().filter(p=>p.starter&&!p.injured&&!p.suspension).length<11){const replacement=G.squad().find(p=>!p.starter&&!p.injured&&!p.suspension);if(replacement)replacement.starter=true;}
+if(G.squad().filter(p=>p.starter&&!p.injured&&!p.suspension).length<11){const replacement=G.squad().find(p=>!p.starter&&!p.injured&&!p.suspension&&p.pos===seller.pos);if(replacement)replacement.starter=true;}
 // Interactive match engine: pause on match day, play six explicit 15-minute segments, and verify report persistence.
 vm.runInContext(fs.readFileSync("www/game-match-engine.js","utf8"),context);
 G.schedule();
