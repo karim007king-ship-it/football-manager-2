@@ -11,7 +11,7 @@
     if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
-      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[]};
+      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[],substitutedOut:[]};
     const m=S.liveMatch;
     [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
     G.save();return {success:true};
@@ -91,10 +91,13 @@
     if((m.substitutions[id]||0)>=5)return {error:"استهلكت الحد الأقصى: 5 تبديلات."};
     const out=S.players.find(p=>p.id===Number(outId)&&p.clubId===id),inn=S.players.find(p=>p.id===Number(inId)&&p.clubId===id);
     if(!out||!inn||!lineup.includes(out.id)||lineup.includes(inn.id))return {error:"اختيار التبديل غير صالح."};
+    m.substitutedOut=m.substitutedOut||[];
+    if(m.substitutedOut.includes(inn.id))return {error:"هذا اللاعب سبق استبداله ولا يمكنه العودة إلى الملعب."};
     if(inn.injured||inn.suspension)return {error:"لا يمكن إشراك لاعب مصاب أو موقوف."};
     const outGroup=positionGroup(out),inGroup=positionGroup(inn);
     if(!outGroup||!inGroup||outGroup!==inGroup)return {error:"مركز البديل غير مناسب. اختر لاعباً من نفس خط اللعب: "+({GK:"حراسة المرمى",DEF:"الدفاع",MID:"الوسط",FWD:"الهجوم"}[outGroup]||"المركز نفسه")+"."};
     lineup[lineup.indexOf(out.id)]=inn.id;
+    m.substitutedOut.push(out.id);
     // Persist the live substitution in the club starting XI for future matches.
     out.starter=false;
     inn.starter=true;
