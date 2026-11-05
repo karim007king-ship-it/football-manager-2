@@ -7,7 +7,8 @@ on:
       - 'www/**'
       - 'capacitor.config.json'
       - 'package.json'
-      - '.github/workflows/build-apk.yml'\n      - 'tests/**'
+      - '.github/workflows/build-apk.yml'
+      - 'tests/**'
 
 jobs:
   build:
@@ -24,7 +25,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Validate game JavaScript
+      - name: Validate game JavaScript and management systems
         run: node --check www/game-core.js && node --check www/game-systems.js && node --check www/game-ui.js && node --check www/game-systems-ui.js && node tests/systems.test.cjs
       - name: Install dependencies
         run: npm install
