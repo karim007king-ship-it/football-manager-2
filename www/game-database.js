@@ -30,7 +30,7 @@ window.FM2Database = (() => {
  ["الأهلي الصفاقسي","الأهلي","AS","صفاقس",42,580000,37000,6000,6,2]
  ];
  const keys=["esperance","etoile","club-africain","sfaxien","monastir","bizertin","stade-tunisien","gabes","marsa","beja","ben-guerdane","metlaoui","gafsa","kairouan","zarzis","soliman","tataouine","hammam-lif","hammam-sousse","jendouba","sidi-bouzid","olympique-transport","makarem-mahdia","ahli-sfax"];
- const positions=["GK","CB","CB","CB","CB","LB","RB","LB","RB","DM","DM","CM","CM","CM","AM","AM","LW","LW","RW","RW","ST","ST","ST","GK"];
+ const positions=["GK","CB","CB","LB","RB","DM","CM","AM","LW","RW","ST","GK","CB","CB","LB","RB","DM","CM","AM","LW","RW","ST","CB","CM"];
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const rng=seed=>{let x=seed>>>0||1;return()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return(x>>>0)/4294967296}};
  const makePlayer=(id,club,index,free)=>{
