@@ -13,27 +13,27 @@ function setup(){
  const {G,S,m,opponentId}=setup();
  assert.equal(m.tactics[opponentId].style,"متوازن","AI should start balanced");
  assert.equal(G.setLiveTactics("style","استحواذ").success,true);
- G.stepLiveMatch("متوازن");G.stepLiveMatch("متوازن");G.stepLiveMatch("متوازن");
+ G.stepLiveMatch("متوازن",15);G.stepLiveMatch("متوازن",15);G.stepLiveMatch("متوازن",15);
  assert.equal(m.minute,45);
  assert.equal(m.tactics[opponentId].style,"مرتدات","AI should counter user's possession style");
  assert.ok(m.events.some(e=>e.text.includes("المدرب المنافس يغيّر خطته")),"AI adjustment should be reported in match events");
 }
 {
  const {G,S,m,opponentId}=setup();
- G.stepLiveMatch("متوازن");G.stepLiveMatch("متوازن");
+ G.stepLiveMatch("متوازن",15);G.stepLiveMatch("متوازن",15);
  m.homeGoals=1;m.awayGoals=0;
- G.stepLiveMatch("متوازن");
+ G.stepLiveMatch("متوازن",15);
  assert.equal(m.tactics[opponentId].style,"لعب مباشر","AI should become more attacking when trailing");
  assert.equal(m.tactics[opponentId].pressing,"عالٍ");
  assert.equal(m.tactics[opponentId].formation,"4-3-3");
 }
 {
  const {G,S,m,opponentId}=setup();
- G.stepLiveMatch("متوازن");G.stepLiveMatch("متوازن");
+ G.stepLiveMatch("متوازن",15);G.stepLiveMatch("متوازن",15);
  m.homeGoals=0;m.awayGoals=1;
- G.stepLiveMatch("متوازن");G.stepLiveMatch("متوازن");
+ G.stepLiveMatch("متوازن",15);G.stepLiveMatch("متوازن",15);
  m.minute=60;
- G.stepLiveMatch("متوازن");
+ G.stepLiveMatch("متوازن",15);
  assert.equal(m.tactics[opponentId].style,"مرتدات","AI should protect a lead with counter-attacking play");
  assert.equal(m.tactics[opponentId].pressing,"منخفض");
  assert.equal(m.tactics[opponentId].defensiveLine,"متأخرة");
