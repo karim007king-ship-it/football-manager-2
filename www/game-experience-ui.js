@@ -27,7 +27,7 @@
   const starters=G.squad().filter(p=>p.starter).sort((a,b)=>["GK","DEF","MID","FWD"].indexOf(a.pos)-["GK","DEF","MID","FWD"].indexOf(b.pos));
   const roster=G.squad().slice().sort((a,b)=>b.ovr-a.ovr);
   return section("التشكيلة الأساسية",card('<div class="ex-pitch">'+starters.map(p=>'<div><b>'+esc(p.name.split(" ")[0])+'</b><small>'+p.ovr+' · '+p.pos+'</small></div>').join("")+'</div><p class="ex-muted">اللاعبون الأساسيون: '+starters.length+'/11</p>'))+
-   section("قائمة اللاعبين",card(roster.map(p=>'<div class="ex-player"><div><b>'+esc(p.name)+'</b><small>'+({GK:"حارس",DEF:"دفاع",MID:"وسط",FWD:"هجوم"}[p.pos])+' · '+p.age+' سنة · تقييم '+p.ovr+' / '+p.potential+'</small><small>'+(p.injured?"مصاب "+(p.injuryDays||0)+" يوم":p.suspension?"موقوف":"العقد "+p.contract+" سنة")+' · الفورمة '+(p.form||65)+'</small></div><div class="ex-training-actions">'+btn(p.starter?"إخراج من التشكيلة":"إشراك","starter:"+p.id,"mini")+btn("تجديد العقد","renew:"+p.id,"mini")+'</div></div>').join(""))));
+   section("قائمة اللاعبين",card(roster.map(p=>'<div class="ex-player"><div><b>'+esc(p.name)+'</b><small>'+({GK:"حارس",DEF:"دفاع",MID:"وسط",FWD:"هجوم"}[p.pos])+' · '+p.age+' سنة · تقييم '+p.ovr+' / '+p.potential+'</small><small>'+(p.injured?"مصاب "+(p.injuryDays||0)+" يوم":p.suspension?"موقوف":"العقد "+p.contract+" سنة")+' · الفورمة '+(p.form||65)+'</small></div><div class="ex-training-actions">'+btn(p.starter?"إخراج من التشكيلة":"إشراك","starter:"+p.id,"mini")+btn("تجديد العقد","renew:"+p.id,"mini")+'</div></div>').join("")));
  }
  function match(){
   let m=S.liveMatch;
