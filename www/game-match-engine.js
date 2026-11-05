@@ -11,7 +11,8 @@
     if(f.date>S.date)return {error:"لم يحن موعد المباراة بعد"};
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
-      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن"};
+      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[]};
+    [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
     G.save();return {success:true};
   }
   function step(choice){
@@ -54,7 +55,7 @@
     G.transaction(home.id,(home.ticket||10)*attendance,"مداخيل مباراة تفاعلية");
     const suspendedBefore=new Set(S.players.filter(p=>(p.clubId===home.id||p.clubId===away.id)&&Number(p.suspension)>0).map(p=>p.id));
     [[home.id,m.homeGoals],[away.id,m.awayGoals]].forEach(([id,goals])=>{
-      const starters=G.squad(id).filter(p=>p.starter&&!p.injured&&!p.suspension);
+      const lineupIds=(m.lineups&&m.lineups[id])||G.squad(id).filter(p=>p.starter&&!p.injured&&!p.suspension).map(p=>p.id);const starters=lineupIds.map(pid=>S.players.find(p=>p.id===pid&&p.clubId===id)).filter(p=>p&&!p.injured&&!p.suspension);
       starters.forEach(p=>{p.apps=(p.apps||0)+1;p.form=Math.max(30,Math.min(100,(p.form||65)+G.rand(-2,4)));if(Math.random()<.008){p.injured=true;p.injuryDays=G.rand(3,20)}if(Math.random()<.025)p.suspension=Math.max(1,Number(p.suspension)||0)});
       for(let i=0;i<goals;i++){const scorers=starters.filter(p=>p.pos==="FWD"||p.pos==="MID");if(scorers.length){const p=G.pick(scorers);p.goals=(p.goals||0)+1}}
     });
@@ -72,6 +73,22 @@
       S.lastMatchId=f.id;
     }
     S.liveMatch=null;G.save();
+  }
+  function substitute(outId,inId){
+    const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
+    if(m.minute<=0||m.minute>=90||m.minute%15!==0)return {error:"التبديلات متاحة بين فترات اللعب فقط."};
+    const id=S.clubId,lineup=m.lineups&&m.lineups[id];
+    if(!lineup)return {error:"تعذر العثور على تشكيلة فريقك."};
+    if((m.substitutions[id]||0)>=5)return {error:"استهلكت الحد الأقصى: 5 تبديلات."};
+    const out=S.players.find(p=>p.id===Number(outId)&&p.clubId===id),inn=S.players.find(p=>p.id===Number(inId)&&p.clubId===id);
+    if(!out||!inn||!lineup.includes(out.id)||lineup.includes(inn.id))return {error:"اختيار التبديل غير صالح."};
+    if(inn.injured||inn.suspension)return {error:"لا يمكن إشراك لاعب مصاب أو موقوف."};
+    lineup[lineup.indexOf(out.id)]=inn.id;
+    m.substitutions[id]=(m.substitutions[id]||0)+1;
+    m.substitutionLog=m.substitutionLog||[];
+    m.substitutionLog.unshift({minute:m.minute,out:out.id,in:inn.id,outName:out.name,inName:inn.name});
+    m.events.unshift({minute:m.minute,text:"🔁 تبديل: خروج "+out.name+" ودخول "+inn.name+"."});
+    G.save();return {success:true,count:m.substitutions[id]};
   }
   const baseAdvance=G.advance.bind(G);
   G.advance=function(days){
@@ -91,6 +108,7 @@
   };
   G.beginLiveMatch=id=>begin(S.fixtures.find(f=>f.id===Number(id))||ownFixture());
   G.stepLiveMatch=step;
+  G.substituteLiveMatch=substitute;
   G.liveMatchEngineLoaded=true;
   G.save();
 })();
