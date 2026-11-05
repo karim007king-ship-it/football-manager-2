@@ -12,6 +12,7 @@
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,cornersHome:0,cornersAway:0,
       passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],status:"live",lastChoice:"متوازن",lineups:{},substitutions:{},substitutionLog:[]};
+    const m=S.liveMatch;
     [f.home,f.away].forEach(id=>{const eligible=G.squad(id).filter(p=>!p.injured&&!p.suspension);m.lineups[id]=eligible.filter(p=>p.starter).slice(0,11).map(p=>p.id);m.substitutions[id]=0;});
     G.save();return {success:true};
   }
