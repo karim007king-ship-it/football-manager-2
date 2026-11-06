@@ -13,6 +13,7 @@ G.stepLiveMatch("متوازن",1);
 assert.equal(m.homeShots+m.awayShots,0,"A midfield build-up must not be counted as a shot");
 assert.ok(m.events.some(e=>e.kind==="pass"||e.kind==="through-ball"||e.kind==="build-up"),"Midfield possession must produce a build-up event");
 assert.ok(m.pitch.ballX>50,"Successful build-up must move the ball toward the opponent's goal");
+assert.ok(m.passesHome>0,"Completed team pass statistics must come from actual successful passes");
 // Once the ball enters the attacking third, the attack may resolve into a shot.
 m.pitch.possession=1;m.pitch.ballX=64;m.pitch.ballY=50;
 G.stepLiveMatch("تسديد",1);
