@@ -1,6 +1,8 @@
 const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
 const store=new Map(),localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v))};
-const math=Object.create(Math);let values=[0.5,0.01,0.5,0.5,0.01,0.5,0.5,0.99,0.01,0.5],index=0;math.random=()=>values[index++]??0.5;
+const math=Object.create(Math);// Sequence: retain home possession, progress the attack, force a foul,
+ // choose an indirect free kick, then trigger the injury roll.
+let values=[0.5,0.01,0.5,0.5,0.01,0.5,0.5,0.99,0.01,0.01],index=0;math.random=()=>values[index++]??0.5;
 const window={},context={window,localStorage,Date,Math:math,Intl,Number,String,JSON,console};vm.createContext(context);
 for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
 const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-06";
