@@ -100,7 +100,7 @@
     if(!carrier||!keeper)return;
     const action=userAction&&teamId===S.clubId?userAction:"";
     const defensiveAction=userAction&&defendingId===S.clubId?userAction:"";
-    const attr=(p,k)=>Number(p?.attributes?.[k]??p?.ovr??60);
+    const attr=(p,k)=>Math.max(1,Number(p?.attributes?.[k]??p?.ovr??60)-(p?.injured?14:0));
     const cs=playerMatchStats(m,carrier),ds=playerMatchStats(m,marker||keeper),ks=playerMatchStats(m,keeper);
     const defensivePressure=defensiveAction==="تراجع دفاعي"?.12:0;
     if(defensiveAction==="افتكاك الكرة"||defensiveAction==="ضغط على حامل الكرة"){
@@ -122,6 +122,13 @@
       matchEvent(m,minute,penalty?"🚨 مخالفة داخل منطقة الجزاء! ركلة جزاء.":"🚩 مخالفة من "+offender.name+" على "+carrier.name+"؛ ركلة حرة للفريق المنافس.",{kind:penalty?"penalty-awarded":"foul",playerId:offender.id,targetId:carrier.id});
       m.pitch.possession=teamId;m.pitch.ballCarrierId=carrier.id;
       m.pitch.setPiece={type:penalty?"penalty":"free-kick",teamId,awardedMinute:minute,direct:penalty||Math.random()<.48,takerId:carrier.id};
+      if(!carrier.injured&&Math.random()<.18){
+        carrier.injured=true;
+        carrier.injuryDays=Math.max(Number(carrier.injuryDays)||0,G.rand(5,18));
+        m.injuries=m.injuries||[];
+        m.injuries.push({playerId:carrier.id,minute,days:carrier.injuryDays});
+        matchEvent(m,minute,"🩹 إصابة "+carrier.name+" بعد التدخل! يعاني من إصابة متوقعة لمدة "+carrier.injuryDays+" أيام؛ يمكنك استبداله.",{kind:"injury",playerId:carrier.id,injuryDays:carrier.injuryDays});
+      }
       if(Math.random()>.70){
         offenderStats.yellowCards++;
         offender.yellowCards=(Number(offender.yellowCards)||0)+1;
@@ -326,7 +333,7 @@
       validatedLineups[id]=starters.map(p=>p.id);
     }
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
-      homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
+      homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,stoppage:{first:G.rand(1,4),second:G.rand(2,5)},injuries:[],
       passesHome:0,passesAway:0,playerMinutes:{},events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],playerStats:{},status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],sentOff:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
     const opponentId=f.home===S.clubId?f.away:f.home;
@@ -405,7 +412,7 @@
     const userDef=userStrength.def+mentalityDef+formationEffect.def+styleEffect.def+pressEffect.def+lineEffect.def+widthEffect.def-fatiguePenalty*.55-userManpowerPenalty;
     const homeAtk=userHome?userAtk:oppStrength.atk, awayAtk=userHome?oppStrength.atk:userAtk;
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
-    const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
+    const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),firstEnd=45+(m.stoppage?.first||0),finalEnd=90+(m.stoppage?.second||0),periodEnd=start<firstEnd?firstEnd:finalEnd,end=Math.min(periodEnd,start+requestedMinutes);
     if(!Number.isFinite(Number(m.possessionMinutes))){m.possessionMinutes=start;m.possessionHomeTotal=(Number(m.homePossession)||50)*start;}
     for(let minute=start+1;minute<=end;minute++){
       if(m.pitch&&m.pitch.setPiece){
@@ -474,9 +481,11 @@
       }
     }
     m.minute=end;
-    if(m.minute===45&&start<45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
-    if(m.minute===90){finish(f,m);return {finished:true,match:m};}
-    G.save();return {finished:false,halfTime:m.minute===45&&start<45,minute:m.minute,match:m};
+    if(start<45&&m.minute>=45&&start<45)m.events.unshift({minute:45,text:"⏱️ الحكم يعلن "+(m.stoppage?.first||0)+" دقائق وقتاً بدل ضائع للشوط الأول."});
+    const halfTime=m.minute===firstEnd&&start<firstEnd;
+    if(halfTime)m.events.unshift({minute:m.minute,text:"⏸️ نهاية الشوط الأول بعد الوقت بدل الضائع. حان وقت الاستراحة وتعديل الخطة."});
+    if(m.minute===finalEnd){m.events.unshift({minute:m.minute,text:"🏁 صافرة النهاية بعد احتساب "+(m.stoppage?.second||0)+" دقائق وقتاً بدل ضائع."});finish(f,m);return {finished:true,match:m};}
+    G.save();return {finished:false,halfTime,minute:m.minute,match:m};
   }
   function finish(f,m){
     f.hg=m.homeGoals;f.ag=m.awayGoals;f.status="played";f.weather="أجواء ملعب";
@@ -507,7 +516,7 @@
   }
   function setLiveTactics(key,value){
     const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
-    if(m.minute>=90)return {error:"انتهت المباراة ولا يمكن تعديل التكتيك الآن."};
+    if(m.minute>=90+(m.stoppage?.second||0))return {error:"انتهت المباراة ولا يمكن تعديل التكتيك الآن."};
     const allowed={formation:["4-4-2","4-3-3","4-2-3-1","3-5-2"],style:["متوازن","استحواذ","مرتدات","لعب مباشر","الأطراف"],pressing:["منخفض","متوسط","عالٍ"],defensiveLine:["متأخرة","متوسطة","متقدمة"],width:["متوازنة","واسعة","ضيقة"]};
     if(!allowed[key]||!allowed[key].includes(value))return {error:"الخيار التكتيكي غير صالح."};
     m.tactics=m.tactics||{};
@@ -529,7 +538,7 @@
   }
   function substitute(outId,inId){
     const m=S.liveMatch;if(!m||m.status!=="live")return {error:"لا توجد مباراة مباشرة"};
-    if(m.minute>=90)return {error:"انتهت المباراة ولا يمكن إجراء تبديل الآن."};
+    if(m.minute>=90+(m.stoppage?.second||0))return {error:"انتهت المباراة ولا يمكن إجراء تبديل الآن."};
     const id=S.clubId,lineup=m.lineups&&m.lineups[id];
     if(!lineup)return {error:"تعذر العثور على تشكيلة فريقك."};
     if((m.substitutions[id]||0)>=5)return {error:"استهلكت الحد الأقصى: 5 تبديلات."};
