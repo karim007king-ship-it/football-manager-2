@@ -16,9 +16,13 @@ assert.equal(m.possessionMinutes,10,"possession must accumulate once per simulat
 assert.equal(m.possessionHomeTotal>0,true,"home possession accumulator must be populated");
 assert.equal(m.passesHome+m.passesAway>0,true,"at least one completed pass must be recorded during the minute loop");
 m.homeShots=7;m.awayShots=4;m.homeOnTarget=3;m.awayOnTarget=2;m.cornersHome=5;m.cornersAway=1;m.passesHome=88;m.passesAway=61;m.homePossession=57;m.attendance=12345;
+m.injuries=[{playerId:m.lineups[1][0],minute:22,days:7},{playerId:m.lineups[2][0],minute:71,days:12}];
 G.createMatchReport(fixture,m);
 const report=G.getReport(fixture.id);
 for(const [key,value] of Object.entries({homeShots:7,awayShots:4,homeOnTarget:3,awayOnTarget:2,cornersHome:5,cornersAway:1,passesHome:88,passesAway:61,possessionHome:57,possessionAway:43,attendance:12345}))assert.equal(report[key],value,"report field "+key+" must match live match data");
+assert.equal(report.injuriesHome,1,"report must count home-team injuries");
+assert.equal(report.injuriesAway,1,"report must count away-team injuries");
+assert.equal(report.injuryDetails.length,2,"report must retain player-linked injury details");
 assert.equal(report.playerRatings.length,22,"ratings must include only players who participated");
 assert.equal(report.playerRatings.every(x=>participants.includes(x.playerId)),true,"report ratings must not include unrelated players");
 console.log("PASS: live match statistics flow into reports; possession and passing accumulate per minute; ratings use match participants only");
