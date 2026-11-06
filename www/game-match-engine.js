@@ -76,7 +76,7 @@
   function playerMatchStats(m,p){
     m.playerStats=m.playerStats||{};
     const key=String(p.id);
-    if(!m.playerStats[key])m.playerStats[key]={playerId:p.id,passes:0,passesCompleted:0,dribbles:0,shots:0,onTarget:0,goals:0,assists:0,tackles:0,interceptions:0,saves:0,turnovers:0};
+    if(!m.playerStats[key])m.playerStats[key]={playerId:p.id,passes:0,passesCompleted:0,dribbles:0,shots:0,onTarget:0,goals:0,assists:0,tackles:0,interceptions:0,saves:0,turnovers:0,fouls:0,yellowCards:0,redCards:0};
     return m.playerStats[key];
   }
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -111,6 +111,31 @@
         matchEvent(m,minute,"🛡️ "+tackler.name+" ينجح في إيقاف الهجمة بعد قرارك: "+defensiveAction+".",{kind:"tackle",playerId:tackler.id,targetId:carrier.id});
         m.pitch.possession=defendingId;m.pitch.ballCarrierId=tackler.id;return;
       }
+    }
+    // A small chance of a foul during a defensive challenge. Cards are
+    // tracked per match and on the player's season record.
+    if(Math.random()>.97){
+      const offender=marker||keeper,offenderStats=playerMatchStats(m,offender);
+      offenderStats.fouls++;
+      matchEvent(m,minute,"🚩 مخالفة من "+offender.name+" على "+carrier.name+"؛ ركلة حرة للفريق المنافس.",{kind:"foul",playerId:offender.id,targetId:carrier.id});
+      m.pitch.possession=teamId;m.pitch.ballCarrierId=carrier.id;
+      if(Math.random()>.80){
+        offenderStats.yellowCards++;
+        offender.yellowCards=(Number(offender.yellowCards)||0)+1;
+        if(offenderStats.yellowCards>=2){
+          offenderStats.redCards++;
+          offender.redCards=(Number(offender.redCards)||0)+1;
+          offender.suspension=Math.max(2,Number(offender.suspension)||0);
+          m.sentOff=m.sentOff||[];
+          if(!m.sentOff.includes(offender.id))m.sentOff.push(offender.id);
+          m.lineups[defendingId]=(m.lineups[defendingId]||[]).filter(id=>id!==offender.id);
+          matchEvent(m,minute,"🟥 بطاقة حمراء! "+offender.name+" يُطرد بعد إنذار ثانٍ، وفريقه يكمل المباراة بعشرة لاعبين.",{kind:"red-card",playerId:offender.id});
+          syncPitchLineups(m);
+        }else{
+          matchEvent(m,minute,"🟨 بطاقة صفراء لـ "+offender.name+" بسبب التدخل على "+carrier.name+".",{kind:"yellow-card",playerId:offender.id});
+        }
+      }
+      return;
     }
     // Outside the attacking third, resolve build-up play first; shots are only
     // possible after the ball has progressed into the opponent's final third.
@@ -239,7 +264,7 @@
     }
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
-      passesHome:0,passesAway:0,playerMinutes:{},events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],playerStats:{},status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
+      passesHome:0,passesAway:0,playerMinutes:{},events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],playerStats:{},status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],sentOff:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
     const opponentId=f.home===S.clubId?f.away:f.home;
     m.tactics[opponentId]={formation:(G.club(opponentId).formation||"4-4-2"),style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
@@ -380,7 +405,7 @@
     G.transaction(home.id,(home.ticket||10)*attendance,"مداخيل مباراة تفاعلية");
     const suspendedBefore=new Set(S.players.filter(p=>(p.clubId===home.id||p.clubId===away.id)&&Number(p.suspension)>0).map(p=>p.id));
     [[home.id,m.homeGoals],[away.id,m.awayGoals]].forEach(([id,goals])=>{
-      const lineupIds=[...new Set([...(m.lineups&&m.lineups[id]||[]),...(m.substitutedOut||[]).filter(pid=>S.players.find(p=>p.id===pid)?.clubId===id)])];
+      const lineupIds=[...new Set([...(m.lineups&&m.lineups[id]||[]),...(m.substitutedOut||[]).filter(pid=>S.players.find(p=>p.id===pid)?.clubId===id),...(m.sentOff||[]).filter(pid=>S.players.find(p=>p.id===pid)?.clubId===id)])];
       const starters=lineupIds.map(pid=>S.players.find(p=>p.id===pid&&p.clubId===id)).filter(Boolean);
       starters.forEach(p=>{p.apps=(p.apps||0)+1;p.form=Math.max(30,Math.min(100,(p.form||65)+G.rand(-2,4)));if(Math.random()<.008){p.injured=true;p.injuryDays=G.rand(3,20)}if(Math.random()<.025)p.suspension=Math.max(1,Number(p.suspension)||0)});
       starters.forEach(p=>{const st=m.playerStats?.[String(p.id)];if(st){p.goals=(p.goals||0)+(st.goals||0);p.assists=(p.assists||0)+(st.assists||0)}});
