@@ -69,7 +69,7 @@
     const defenders=defIds.map(id=>S.players.find(p=>p.id===id)).filter(Boolean);
     const forwards=players.filter(p=>positionGroup(p)==="FWD"),mids=players.filter(p=>positionGroup(p)==="MID");
     const backs=defenders.filter(p=>positionGroup(p)==="DEF"||positionGroup(p)==="MID");
-    const carrier=G.pick(forwards.length?forwards:mids.length?mids:players);
+    let carrier=G.pick(forwards.length?forwards:mids.length?mids:players);
     const receiver=G.pick([...forwards,...mids].filter(p=>p&&p.id!==carrier?.id));
     const marker=G.pick(backs.length?backs:defenders);
     const keeper=defenders.find(p=>positionGroup(p)==="GK")||defenders[0];
