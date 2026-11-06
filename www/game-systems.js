@@ -41,7 +41,11 @@
       passesHome:live?live.passesHome:rand(250,520),passesAway:live?live.passesAway:rand(250,520),
       foulsHome:live?liveStat(f.home,"fouls"):0,foulsAway:live?liveStat(f.away,"fouls"):0,
       yellowCardsHome:live?liveStat(f.home,"yellowCards"):0,yellowCardsAway:live?liveStat(f.away,"yellowCards"):0,
-      redCardsHome:live?liveStat(f.home,"redCards"):0,redCardsAway:live?liveStat(f.away,"redCards"):0,attendance:live&&live.attendance?live.attendance:rand(3500,Math.max(3501,Math.min(home.capacity||30000,home.capacity||30000))),
+      redCardsHome:live?liveStat(f.home,"redCards"):0,redCardsAway:live?liveStat(f.away,"redCards"):0,
+      injuriesHome:live?(live.injuries||[]).filter(x=>S.players.find(p=>p.id===x.playerId)?.clubId===f.home).length:0,
+      injuriesAway:live?(live.injuries||[]).filter(x=>S.players.find(p=>p.id===x.playerId)?.clubId===f.away).length:0,
+      injuryDetails:live?(live.injuries||[]).map(x=>({...x,playerName:S.players.find(p=>p.id===x.playerId)?.name||"لاعب"})):[],
+      attendance:live&&live.attendance?live.attendance:rand(3500,Math.max(3501,Math.min(home.capacity||30000,home.capacity||30000))),
       playerRatings:[]};
     const participantIds=live?new Set([...(live.lineups?.[f.home]||[]),...(live.lineups?.[f.away]||[]),...(live.substitutedOut||[]),...(live.sentOff||[])]):null;
     const participants=live?S.players.filter(p=>participantIds.has(p.id)&&(p.clubId===f.home||p.clubId===f.away)):S.players.filter(p=>(p.clubId===f.home||p.clubId===f.away)&&p.apps>0).slice(0,22);
