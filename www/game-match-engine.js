@@ -60,6 +60,12 @@
     p.possession=homeHasBall?m.home:m.away;
     const direction=homeHasBall?1:-1,changed=previousPossession!==p.possession;
     if(changed)p.ballCarrierId=null;
+    if(!p.ballCarrierId){
+      const active=(m.lineups[p.possession]||[]).map(id=>S.players.find(player=>player.id===id)).filter(Boolean);
+      const options=active.filter(player=>positionGroup(player)==="MID"||positionGroup(player)==="FWD");
+      const carrier=G.pick(options.length?options:active);
+      p.ballCarrierId=carrier?.id||null;
+    }
     const travel=changed?(4+Math.random()*5):(1+Math.random()*3);
     p.ballX=Math.max(4,Math.min(96,p.ballX+direction*travel));
     p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*10-5)));
