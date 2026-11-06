@@ -341,7 +341,15 @@
       // not the pre-match probability estimate used by the turnover model.
       m.possessionHomeTotal+=homeHasBall?100:0;
       m.playerMinutes=m.playerMinutes||{};
-      [m.home,m.away].forEach(teamId=>(m.lineups[teamId]||[]).forEach(pid=>{m.playerMinutes[pid]=(Number(m.playerMinutes[pid])||0)+1;}));
+      [m.home,m.away].forEach(teamId=>{
+        const pressing=m.tactics?.[teamId]?.pressing||"متوسط";
+        const fatigueRate=pressing==="عالٍ"?2.1:pressing==="منخفض"?.35:.8;
+        (m.lineups[teamId]||[]).forEach(pid=>{
+          m.playerMinutes[pid]=(Number(m.playerMinutes[pid])||0)+1;
+          const player=S.players.find(p=>p.id===pid);
+          if(player)player.fatigue=Math.min(100,(Number(player.fatigue)||0)+fatigueRate);
+        });
+      });
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
       positionPitchPlayers(m);
@@ -361,13 +369,6 @@
       }
     }
     m.minute=end;
-    Object.entries(m.playerMinutes||{}).forEach(([pid,played])=>{
-      const player=S.players.find(p=>p.id===Number(pid));
-      if(!player||!played)return;
-      const teamPressing=m.tactics?.[player.clubId]?.pressing||"متوسط";
-      const fatigueRate=teamPressing==="عالٍ"?2.1:teamPressing==="منخفض"?.35:.8;
-      player.fatigue=Math.min(100,(Number(player.fatigue)||0)+fatigueRate*Number(played));
-    });
     if(m.minute===45&&start<45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
     if(m.minute===90){finish(f,m);return {finished:true,match:m};}
     G.save();return {finished:false,halfTime:m.minute===45&&start<45,minute:m.minute,match:m};
