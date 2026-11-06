@@ -53,6 +53,13 @@
       const widthScale=width==="واسعة"?1.22:width==="ضيقة"?.78:1;
       player.y=Math.max(5,Math.min(95,50+(player.baseY-50)*widthScale+(p.ballY-50)*.12));
     }
+    // The ball marker follows the actual carrier, so the carrier must occupy
+    // the live ball coordinates rather than remain fixed in the formation.
+    const carrier=[...p.homePlayers,...p.awayPlayers].find(player=>player.id===p.ballCarrierId);
+    if(carrier){
+      carrier.x=clamp(Number(p.ballX)||50,4,96);
+      carrier.y=clamp(Number(p.ballY)||50,8,92);
+    }
   }
   function movePitch(m,minute,homeHasBall){
     const p=m.pitch;
@@ -66,7 +73,7 @@
       const carrier=G.pick(options.length?options:active);
       p.ballCarrierId=carrier?.id||null;
     }
-    const travel=changed?(4+Math.random()*5):(1+Math.random()*3);
+    const travel=changed?(6+Math.random()*5):(2.5+Math.random()*3.5);
     p.ballX=Math.max(4,Math.min(96,p.ballX+direction*travel));
     p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*10-5)));
     p.phase=homeHasBall?(p.ballX>=67?"الثلث الهجومي":p.ballX<=33?"الثلث الدفاعي":"وسط الملعب"):(p.ballX<=33?"الثلث الهجومي":p.ballX>=67?"الثلث الدفاعي":"وسط الملعب");
@@ -186,7 +193,7 @@
           matchEvent(m,minute,"🔄 "+carrier.name+" يحتفظ بالكرة ويتقدم بها نحو الثلث الهجومي.",{kind:"build-up",playerId:carrier.id});
         }
       }
-      const progress=buildAction==="تمريرة بينية"?15:buildAction==="مراوغة"?12:10;
+      const progress=buildAction==="تمريرة بينية"?18:buildAction==="مراوغة"?15:13;
       m.pitch.ballX=clamp(ballX+(teamId===m.home?1:-1)*(progress+Math.random()*4),4,96);
       m.pitch.ballY=clamp(Number(m.pitch.ballY||50)+(Math.random()*12-6),8,92);
       m.pitch.possession=teamId;m.pitch.ballCarrierId=(receiver||carrier).id;
@@ -449,8 +456,10 @@
       const turnoverChance=clamp(.075+expectedAgainst*.0012+pressBonus+styleRetention+formationRetention,.035,.28);
       const homeHasBall=Math.random()<(currentHome?1-turnoverChance:turnoverChance);
       movePitch(m,minute,homeHasBall);
-      const homeChance=clamp(.07+(homeAtk-awayDef)/520+(userHome?actionBoost:0)-(userHome?0:defenseBoost),.025,.24);
-      const awayChance=clamp(.07+(awayAtk-homeDef)/520+(userHome?0:actionBoost)-(userHome?defenseBoost:0),.025,.24);
+      const homeInFinalThird=m.pitch.ballX>=68;
+      const awayInFinalThird=m.pitch.ballX<=32;
+      const homeChance=clamp(.12+(homeAtk-awayDef)/420+(homeInFinalThird?.12:0)+(userHome?actionBoost:0)-(userHome?0:defenseBoost),.06,.34);
+      const awayChance=clamp(.12+(awayAtk-homeDef)/420+(awayInFinalThird?.12:0)+(userHome?0:actionBoost)-(userHome?defenseBoost:0),.06,.34);
       const userAction=["تسديد","تمريرة بينية","مراوغة","عرضية","ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)?choiceKey:"";
       if(homeHasBall&&Math.random()<homeChance)resolveAttack(m,m.home,minute,homeAtk,awayDef,userAction);
       if(!homeHasBall&&Math.random()<awayChance)resolveAttack(m,m.away,minute,awayAtk,homeDef,userAction);
