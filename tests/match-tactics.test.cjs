@@ -9,7 +9,7 @@ function playWith(config,seedBase=12345){
  assert.equal(G.beginLiveMatch(99001).success,true);
  const m=S.liveMatch;
  for(const [key,value] of Object.entries(config||{}))assert.equal(G.setLiveTactics(key,value).success,true,"Tactic "+key+" should be accepted");
- let result;for(let i=0;i<6;i++)result=G.stepLiveMatch("متوازن",15);assert.equal(result.finished,true);
+ let result,segments=0;while(S.liveMatch&&segments<8){result=G.stepLiveMatch("متوازن",15);assert.equal(Boolean(result.error),false,"Match segment should advance without error");segments++;}assert.equal(result.finished,true,"Match must finish after both stoppage-time periods");
  return {possession:m.homePossession,passes:m.passesHome,tactics:m.tactics[1],fatigue:G.squad(1).filter(p=>m.lineups[1].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0),opponentFatigue:G.squad(2).filter(p=>m.lineups[2].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0),playedMinutes:Object.values(m.playerMinutes||{}).reduce((n,v)=>n+v,0)};
 }
 function averageWith(config){
@@ -27,7 +27,7 @@ const highPress=averageWith({pressing:"عالٍ"}),lowPress=averageWith({pressin
 assert.ok(highPress.possession>lowPress.possession,"High pressing must change the team's possession profile");
 assert.ok(highPress.fatigue>lowPress.fatigue,"High pressing must cause more player fatigue than low pressing");
 assert.ok(baseline.opponentFatigue>0,"The opposing team must also accumulate match fatigue");
-assert.ok(baseline.playedMinutes<=22*90&&baseline.playedMinutes>=20*90,"Player minutes must reflect the full match and any rare dismissals");
+assert.ok(baseline.playedMinutes<=22*100&&baseline.playedMinutes>=20*90,"Player minutes must reflect the full match, stoppage time, and any rare dismissals");
 const attacking=averageWith({formation:"4-3-3"}),defensive=averageWith({formation:"3-5-2"});
 assert.equal(attacking.tactics.formation,"4-3-3","The selected attacking formation must persist throughout the match");
 assert.equal(defensive.tactics.formation,"3-5-2","The selected defensive formation must persist throughout the match");
