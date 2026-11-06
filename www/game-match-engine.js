@@ -455,6 +455,7 @@
     if((m.substitutions[id]||0)>=5)return {error:"استهلكت الحد الأقصى: 5 تبديلات."};
     const out=S.players.find(p=>p.id===Number(outId)&&p.clubId===id),inn=S.players.find(p=>p.id===Number(inId)&&p.clubId===id);
     if(!out||!inn||!lineup.includes(out.id)||lineup.includes(inn.id))return {error:"اختيار التبديل غير صالح."};
+    if((m.sentOff||[]).includes(inn.id))return {error:"لا يمكن إعادة لاعب طُرد بالبطاقة الحمراء إلى المباراة."};
     m.substitutedOut=m.substitutedOut||[];
     if(m.substitutedOut.includes(inn.id))return {error:"هذا اللاعب سبق استبداله ولا يمكنه العودة إلى الملعب."};
     if(inn.injured||inn.suspension)return {error:"لا يمكن إشراك لاعب مصاب أو موقوف."};
