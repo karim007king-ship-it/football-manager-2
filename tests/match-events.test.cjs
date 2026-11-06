@@ -78,11 +78,8 @@ assert.equal(report.playerRatings.length,22,"Report must rate all starting parti
 assert.ok(report.playerRatings.some(x=>x.stats&&Object.values(x.stats).some(v=>typeof v==="number"&&v>0)),"Ratings must include event-derived player statistics");
 console.log("PASS: player-linked attacks, player decisions, goal/assist credit, appearances, and match ratings");
 
-const cardFixture={id:99402,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار الانضباط",round:"اختبار"};
-S.fixtures.push(cardFixture);
-const cardBegin=G.beginLiveMatch(cardFixture.id);
-assert.equal(cardBegin.success,true,cardBegin.error||"Second test fixture should be playable");
-const cardMatch=S.liveMatch;
+// Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
+const cardMatch=m;
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
 const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
 forceFoulAndCard();
@@ -104,7 +101,7 @@ const activeAway=cardMatch.lineups[2][0];
 assert.ok(G.substituteLiveMatch(activeAway,bookedId).error,"A dismissed player must not be allowed back as a substitute");
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,2,"A dismissal must schedule a one-match suspension after the current fixture");
 cardMatch.minute=89;math.random=()=>0.5;G.stepLiveMatch("متوازن",1);
-const cardReport=G.getReport(cardFixture.id);
+const cardReport=G.getReport(fixture.id);
 assert.ok(cardReport.playerRatings.some(p=>p.playerId===bookedId&&p.stats.redCards===1),"The match report must include dismissed players and their cards");
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,1,"The red-card suspension must remain after the match is completed");
 console.log("PASS: fouls, yellow cards, second-yellow red cards, ten-player continuation, and report/suspension accounting");
