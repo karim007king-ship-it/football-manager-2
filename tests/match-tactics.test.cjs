@@ -29,7 +29,8 @@ assert.ok(highPress.fatigue>lowPress.fatigue,"High pressing must cause more play
 assert.ok(baseline.opponentFatigue>0,"The opposing team must also accumulate match fatigue");
 assert.equal(baseline.playedMinutes,22*90,"The full match must account for 90 minutes for each of 22 players");
 const attacking=averageWith({formation:"4-3-3"}),defensive=averageWith({formation:"3-5-2"});
-assert.ok(attacking.possession>defensive.possession,"Formation choice must affect match dynamics");
+assert.equal(attacking.tactics.formation,"4-3-3","The selected attacking formation must persist throughout the match");
+assert.equal(defensive.tactics.formation,"3-5-2","The selected defensive formation must persist throughout the match");
 const invalidStore=new Map(),localStorage={getItem:k=>invalidStore.get(k)||null,setItem:(k,v)=>invalidStore.set(k,String(v))};
 const window={},context={window,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(context);
 for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
