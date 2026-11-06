@@ -23,10 +23,8 @@ assert.equal(m.pitch.ballX,ballBefore.x,"Formation changes must preserve the bal
 assert.equal(m.pitch.ballY,ballBefore.y,"Formation changes must preserve the ball's vertical position");
 math.random=()=>0.01;
 // A possession in midfield must create build-up play, never an immediate shot.
-m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;
-math.random=()=>0.5;
+m.pitch.possession=2;m.pitch.ballX=50;m.pitch.ballY=50;
 G.stepLiveMatch("متوازن",1);
-math.random=()=>0.01;
 assert.equal(m.homeShots+m.awayShots,0,"A midfield build-up must not be counted as a shot");
 assert.ok(m.events.some(e=>e.kind==="pass"||e.kind==="through-ball"||e.kind==="build-up"),"Midfield possession must produce a build-up event");
 assert.ok(m.pitch.ballX>50,"Successful build-up must move the ball toward the opponent's goal");
