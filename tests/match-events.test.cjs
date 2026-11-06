@@ -70,13 +70,13 @@ assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attackin
 // Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
 const cardMatch=m;
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
-const bookedMinutesBefore=Number(cardMatch.playerMinutes[cardMatch.lineups[2][0]]||0);
 const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
 const yellowEvent=cardMatch.events.find(e=>e.kind==="yellow-card");
 assert.ok(yellowEvent,"A disciplinary foul can produce a yellow card");
 const bookedId=yellowEvent.playerId;
+const bookedMinutesBefore=Number(cardMatch.playerMinutes[bookedId]||0)-1;
 assert.equal(cardMatch.playerStats[String(bookedId)].yellowCards,1,"The first booking must be recorded in match statistics");
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;
 forceFoulAndCard();
