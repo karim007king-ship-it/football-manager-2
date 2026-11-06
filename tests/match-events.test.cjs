@@ -93,11 +93,14 @@ assert.equal(cardMatch.playerStats[String(bookedId)].yellowCards,1,"The first bo
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
+assert.ok(cardMatch.events.some(e=>e.kind==="yellow-card"&&e.playerId===bookedId&&e.second),"The second yellow must be logged before dismissal");
 assert.ok(cardMatch.events.some(e=>e.kind==="red-card"&&e.playerId===bookedId),"A second yellow card must dismiss the same player");
 assert.ok(cardMatch.sentOff.includes(bookedId),"The dismissed player must be recorded separately");
 assert.ok(!cardMatch.lineups[2].includes(bookedId),"The dismissed player must leave the active lineup");
 assert.equal(cardMatch.lineups[2].length,10,"The dismissed team must continue with ten players");
 assert.equal(cardMatch.playerStats[String(bookedId)].redCards,1,"The dismissal must be included in player match statistics");
+const activeAway=cardMatch.lineups[2][0];
+assert.ok(G.substituteLiveMatch(activeAway,bookedId).error,"A dismissed player must not be allowed back as a substitute");
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,2,"A dismissal must schedule a one-match suspension after the current fixture");
 cardMatch.minute=89;math.random=()=>0.5;G.stepLiveMatch("متوازن",1);
 const cardReport=G.getReport(cardFixture.id);
