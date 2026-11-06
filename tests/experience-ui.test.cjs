@@ -25,3 +25,5 @@ assert.ok(ui.includes('match-choice:'), "In-match actions should be queued for t
 assert.ok(ui.includes('match-plan:'), "Team mentality should be selectable during automatic play");
 assert.ok(ui.includes('visibilitychange'), "The match clock should pause safely when the app is backgrounded");
 assert.ok(!ui.includes('btn("تقدم دقيقة واحدة","step:متوازن:1"'), "The main match UI should not require pressing a button for every minute");
+assert.ok(ui.includes("players.filter(p=>positionGroup(p)===pos)"), "The live lineup must group all natural position variants correctly");
+assert.ok(ui.includes('x.id===p.ballCarrierId?" carrier":""'), "The live pitch must highlight the player carrying the ball");
