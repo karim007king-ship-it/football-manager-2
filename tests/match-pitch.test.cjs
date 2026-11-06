@@ -19,6 +19,7 @@ let r=G.stepLiveMatch("متوازن",1);
 assert.equal(r.minute,1);
 assert.equal(m.pitch.minute,1,"Pitch clock must match the match clock");
 assert.ok([m.home,m.away].includes(m.pitch.possession),"Ball possession must belong to one of the two teams");
+assert.ok(m.lineups[m.pitch.possession].includes(m.pitch.ballCarrierId),"The live ball must have a carrier from the team in possession");
 assert.notEqual(m.pitch.ballX,50,"Ball must move during a simulated minute");
 assert.equal(m.pitch.homePlayers.length,11);
 assert.equal(m.pitch.awayPlayers.length,11);
