@@ -78,9 +78,10 @@
     const defensiveAction=userAction&&defendingId===S.clubId?userAction:"";
     const attr=(p,k)=>Number(p?.attributes?.[k]??p?.ovr??60);
     const cs=playerMatchStats(m,carrier),ds=playerMatchStats(m,marker||keeper),ks=playerMatchStats(m,keeper);
-    if(defensiveAction){
+    const defensivePressure=defensiveAction==="تراجع دفاعي"?.12:0;
+    if(defensiveAction==="افتكاك الكرة"||defensiveAction==="ضغط على حامل الكرة"){
       const tackler=marker||keeper,ts=playerMatchStats(m,tackler);
-      const tackleChance=clamp(.18+(attr(tackler,"tackling")-60)*.006+(defensiveAction==="افتكاك الكرة"?.24:defensiveAction==="ضغط على حامل الكرة"?.12:0),.08,.68);
+      const tackleChance=clamp(.18+(attr(tackler,"tackling")-60)*.006+(defensiveAction==="افتكاك الكرة"?.24:.12),.08,.68);
       if(Math.random()<tackleChance){
         ts.tackles++;ts.interceptions++;
         matchEvent(m,minute,"🛡️ "+tackler.name+" ينجح في إيقاف الهجمة بعد قرارك: "+defensiveAction+".",{kind:"tackle",playerId:tackler.id,targetId:carrier.id});
@@ -129,7 +130,7 @@
     shotStats.shots++;
     if(teamId===m.home)m.homeShots++;else m.awayShots++;
     matchEvent(m,minute,"⚽ "+shotPlayer.name+" يستعد للتسديد على المرمى.",{kind:"shot",playerId:shotPlayer.id});
-    const accuracy=clamp(.39+(attr(shotPlayer,"finishing")-60)*.005+(attr(shotPlayer,"shotPower")-60)*.002,.2,.88);
+    const accuracy=clamp(.39+(attr(shotPlayer,"finishing")-60)*.005+(attr(shotPlayer,"shotPower")-60)*.002-defensivePressure,.2,.88);
     if(Math.random()>accuracy){
       if(teamId===m.home){if(Math.random()<.28)m.cornersHome++;}else if(Math.random()<.28)m.cornersAway++;
       matchEvent(m,minute,"تسديدة "+shotPlayer.name+" تمر بجوار المرمى.",{kind:"shot-off-target",playerId:shotPlayer.id});
