@@ -70,6 +70,7 @@ assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attackin
 // Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
 const cardMatch=m;
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
+const bookedMinutesBefore=Number(cardMatch.playerMinutes[cardMatch.lineups[2][0]]||0);
 const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
@@ -104,6 +105,6 @@ assert.equal(S.players.find(p=>p.id===bookedId).suspension,1,"The red-card suspe
 assert.equal(report.redCardsAway,1,"The match report must total the dismissal for the correct team");
 assert.equal(report.yellowCardsAway,2,"The match report must count both yellow cards");
 assert.equal(report.foulsAway,2,"The match report must count fouls committed by the defending team");
-assert.equal(report.playerRatings.find(p=>p.playerId===bookedId).minutes,2,"The report must preserve the dismissed player's actual minutes");
+assert.equal(report.playerRatings.find(p=>p.playerId===bookedId).minutes,bookedMinutesBefore+2,"The report must preserve the dismissed player's actual minutes");
 console.log("PASS: fouls, yellow cards, second-yellow red cards, ten-player continuation, and report/suspension accounting");
 console.log("PASS: player-linked attacks, player decisions, goal/assist credit, appearances, and match ratings");
