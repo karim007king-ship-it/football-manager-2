@@ -175,7 +175,7 @@
       if(Math.random()>chance){
         cs.turnovers++;ds.interceptions++;
         matchEvent(m,minute,"⛔ "+marker.name+" يقرأ التمريرة ويعترض الكرة من "+carrier.name+".",{kind:"interception",playerId:marker.id,targetId:carrier.id});
-        m.pitch.possession=defendingId;advanced=false;
+        m.pitch.possession=defendingId;m.pitch.ballCarrierId=marker.id;advanced=false;
       }else{
         cs.passesCompleted++;if(teamId===m.home)m.passesHome++;else m.passesAway++;assister=carrier;
         if(receiver)matchEvent(m,minute,action==="تمريرة بينية"?"🎯 "+carrier.name+" يخترق الدفاع بتمريرة بينية إلى "+receiver.name+".":"🔄 "+carrier.name+" يمرر الكرة إلى "+receiver.name+".",{kind:action==="تمريرة بينية"?"through-ball":"pass",playerId:carrier.id,targetId:receiver.id});
