@@ -14,6 +14,7 @@ const injured=S.players.find(p=>p.id===injury.playerId);
 assert.ok(injured.injured,"Injured player must be flagged unavailable for future matches");
 assert.ok(injured.injuryDays>=5&&injured.injuryDays<=18,"Injury must have a recovery duration");
 assert.ok(m.injuries.some(x=>x.playerId===injured.id),"Match must retain a structured injury record");
+assert.equal(m.pitch.setPiece?.type,"free-kick","The foul that caused the injury must award a free kick to the fouled team");
 const group=p=>{const pos=p.primaryPosition||p.pos;return pos==="GK"?"GK":["CB","LB","RB","DEF"].includes(pos)?"DEF":["DM","CM","AM","MID"].includes(pos)?"MID":["LW","RW","ST","FWD"].includes(pos)?"FWD":null};
 const substitute=G.squad(1).find(p=>!m.lineups[1].includes(p.id)&&!p.injured&&!p.suspension&&group(p)===group(injured));
 assert.ok(substitute,"An eligible position-compatible substitute should be available");
