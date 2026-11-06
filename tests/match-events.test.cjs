@@ -6,7 +6,7 @@ for(const file of ["www/game-database.js","www/game-core.js","www/game-systems.j
 const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";
 const fixture={id:99401,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار الأحداث",round:"اختبار"};
 S.fixtures=[fixture];assert.equal(G.beginLiveMatch(fixture.id).success,true);
-const m=S.liveMatch,userIds=m.lineups[1],userKeeper=userIds.find(id=>S.players.find(p=>p.id===id).pos==="GK");
+const m=S.liveMatch,opponentKeeper=m.lineups[2].find(id=>S.players.find(p=>p.id===id).pos==="GK");
 m.pitch.possession=1;m.pitch.ballX=78;m.pitch.ballY=50;
 G.stepLiveMatch("تسديد",1);
 const goalOrShot=m.events.find(e=>["goal","shot","shot-off-target","save"].includes(e.kind)&&e.playerId);
