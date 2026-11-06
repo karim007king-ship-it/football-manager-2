@@ -30,9 +30,10 @@
     const old=m.pitch||{};
     buildPitch(m);
     const next=m.pitch;
-    for(const key of ["ballX","ballY","possession","phase","minute"]){
+    for(const key of ["ballX","ballY","possession","ballCarrierId","phase","minute"]){
       if(old[key]!==undefined&&old[key]!==null)next[key]=old[key];
     }
+    if(next.ballCarrierId&&!((next.homePlayers||[]).concat(next.awayPlayers||[]).some(p=>p.id===next.ballCarrierId)))next.ballCarrierId=null;
   }
   function positionPitchPlayers(m){
     const p=m.pitch;
