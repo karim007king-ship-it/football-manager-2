@@ -8,6 +8,7 @@ const fixture={id:99401,date:S.date,home:1,away:2,status:"scheduled",competition
 S.fixtures=[fixture];assert.equal(G.beginLiveMatch(fixture.id).success,true);
 const m=S.liveMatch,opponentKeeper=m.lineups[2].find(id=>S.players.find(p=>p.id===id).pos==="GK");
 // Possession must persist across quiet minutes instead of being re-rolled independently.
+math.random=()=>0.5;
 m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;
 G.stepLiveMatch("متوازن",1);
 assert.equal(m.pitch.possession,1,"A team should retain possession when no turnover or failed action occurs");
@@ -20,6 +21,7 @@ G.setLiveTactics("formation","4-3-3");
 assert.notEqual(m.pitch.homePlayers.map(p=>p.baseX).join(","),oldLine,"Changing formation must reposition players on the pitch");
 assert.equal(m.pitch.ballX,ballBefore.x,"Formation changes must preserve the ball's horizontal position");
 assert.equal(m.pitch.ballY,ballBefore.y,"Formation changes must preserve the ball's vertical position");
+math.random=()=>0.01;
 // A possession in midfield must create build-up play, never an immediate shot.
 m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;
 G.stepLiveMatch("متوازن",1);
