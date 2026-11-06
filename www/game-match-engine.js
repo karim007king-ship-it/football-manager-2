@@ -486,7 +486,14 @@
       }
     }
     m.minute=end;
-    if(start<45&&m.minute>=45&&start<45)m.events.unshift({minute:45,text:"⏱️ الحكم يعلن "+(m.stoppage?.first||0)+" دقائق وقتاً بدل ضائع للشوط الأول."});
+    if(m.minute>=45&&!m.firstStoppageAnnounced&&(m.stoppage?.first||0)>0){
+      m.firstStoppageAnnounced=true;
+      matchEvent(m,45,"⏱️ الحكم يعلن "+m.stoppage.first+" دقائق وقتاً بدل ضائع للشوط الأول.",{kind:"stoppage-announcement",period:1});
+    }
+    if(m.minute>=90&&!m.secondStoppageAnnounced&&(m.stoppage?.second||0)>0){
+      m.secondStoppageAnnounced=true;
+      matchEvent(m,90,"⏱️ الحكم يعلن "+m.stoppage.second+" دقائق وقتاً بدل ضائع للشوط الثاني.",{kind:"stoppage-announcement",period:2});
+    }
     const halfTime=m.minute===firstEnd&&start<firstEnd;
     if(halfTime)m.events.unshift({minute:m.minute,text:"⏸️ نهاية الشوط الأول بعد الوقت بدل الضائع. حان وقت الاستراحة وتعديل الخطة."});
     if(m.minute===finalEnd){m.events.unshift({minute:m.minute,text:"🏁 صافرة النهاية بعد احتساب "+(m.stoppage?.second||0)+" دقائق وقتاً بدل ضائع."});finish(f,m);return {finished:true,match:m};}
