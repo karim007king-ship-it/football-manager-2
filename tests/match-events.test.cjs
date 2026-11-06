@@ -78,7 +78,7 @@ assert.ok(yellowEvent,"A disciplinary foul can produce a yellow card");
 const bookedId=yellowEvent.playerId;
 const bookedMinutesBefore=Number(cardMatch.playerMinutes[bookedId]||0)-1;
 assert.equal(cardMatch.playerStats[String(bookedId)].yellowCards,1,"The first booking must be recorded in match statistics");
-cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;
+cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;cardMatch.pitch.setPiece=null;
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
 assert.ok(cardMatch.events.some(e=>e.kind==="yellow-card"&&e.playerId===bookedId&&e.second),"The second yellow must be logged before dismissal");
