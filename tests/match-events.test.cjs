@@ -80,7 +80,8 @@ console.log("PASS: player-linked attacks, player decisions, goal/assist credit, 
 
 const cardFixture={id:99402,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار الانضباط",round:"اختبار"};
 S.fixtures.push(cardFixture);
-assert.equal(G.beginLiveMatch(cardFixture.id).success,true);
+const cardBegin=G.beginLiveMatch(cardFixture.id);
+assert.equal(cardBegin.success,true,cardBegin.error||"Second test fixture should be playable");
 const cardMatch=S.liveMatch;
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
 const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
