@@ -241,9 +241,9 @@
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
       passesHome:0,passesAway:0,playerMinutes:{},events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],playerStats:{},status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
-    buildPitch(m);
     const opponentId=f.home===S.clubId?f.away:f.home;
     m.tactics[opponentId]={formation:(G.club(opponentId).formation||"4-4-2"),style:"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
+    buildPitch(m);
     m.aiLastUpdateMinute=0;
     [f.home,f.away].forEach(id=>{m.substitutions[id]=0;});
     G.save();return {success:true};
