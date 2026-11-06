@@ -385,7 +385,11 @@
       m.events.unshift({minute:m.minute,text:"🧠 المدرب المنافس يغيّر خطته ("+reason+"): "+ai.formation+"، "+ai.style+"، ضغط "+ai.pressing+"."});
       m.aiLastUpdateMinute=m.minute;
     }
-    const userStrength=G.strength(userId),rawOppStrength=G.strength(oppId);
+    const rawUserStrength=G.strength(userId),rawOppStrength=G.strength(oppId);
+    const userInjuries=(m.lineups[userId]||[]).filter(pid=>S.players.find(p=>p.id===pid)?.injured).length;
+    const opponentInjuries=(m.lineups[oppId]||[]).filter(pid=>S.players.find(p=>p.id===pid)?.injured).length;
+    const userInjuryPenalty=Math.min(10,userInjuries*2.5),opponentInjuryPenalty=Math.min(10,opponentInjuries*2.5);
+    const userStrength={atk:rawUserStrength.atk-userInjuryPenalty,def:rawUserStrength.def-userInjuryPenalty};
     const oppFormationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[ai.formation]||{atk:0,def:0,pos:0};
     const oppStyleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[ai.style]||{atk:0,def:0,pos:0};
     const oppPressEffect=({"منخفض":{atk:-1,def:2,pos:-2},"متوسط":{atk:0,def:0,pos:0},"عالٍ":{atk:1,def:4,pos:4}})[ai.pressing]||{atk:0,def:0,pos:0};
@@ -395,7 +399,7 @@
     const opponentAverageFatigue=opponentPlayers.length?opponentPlayers.reduce((n,p)=>n+(Number(p.fatigue)||0),0)/opponentPlayers.length:0;
     const opponentFatiguePenalty=Math.min(5,opponentAverageFatigue/18);
     const opponentManpowerPenalty=Math.max(0,11-(m.lineups[oppId]||[]).length)*5;
-    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk-opponentFatiguePenalty-opponentManpowerPenalty,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def-opponentFatiguePenalty-opponentManpowerPenalty};
+    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk-opponentFatiguePenalty-opponentManpowerPenalty-opponentInjuryPenalty,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def-opponentFatiguePenalty-opponentManpowerPenalty-opponentInjuryPenalty};
     const tactics=userTactics;
     const formationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[tactics.formation]||{atk:0,def:0,pos:0};
     const styleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[tactics.style]||{atk:0,def:0,pos:0};
