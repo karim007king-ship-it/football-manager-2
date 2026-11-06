@@ -114,12 +114,12 @@
     }
     // A small chance of a foul during a defensive challenge. Cards are
     // tracked per match and on the player's season record.
-    if(Math.random()>.97){
+    if(Math.random()>.80){
       const offender=marker||keeper,offenderStats=playerMatchStats(m,offender);
       offenderStats.fouls++;
       matchEvent(m,minute,"🚩 مخالفة من "+offender.name+" على "+carrier.name+"؛ ركلة حرة للفريق المنافس.",{kind:"foul",playerId:offender.id,targetId:carrier.id});
       m.pitch.possession=teamId;m.pitch.ballCarrierId=carrier.id;
-      if(Math.random()>.80){
+      if(Math.random()>.70){
         offenderStats.yellowCards++;
         offender.yellowCards=(Number(offender.yellowCards)||0)+1;
         if(offenderStats.yellowCards>=2){
