@@ -13,21 +13,43 @@
       for(const group of groups){
         const list=players.filter(p=>positionGroup(p)===group);
         const base=({GK:8,DEF:27,MID:50,FWD:73})[group];
-        list.forEach((p,i)=>target.push({id:p.id,name:p.name,team:teamId,x:reverse?100-base:base,y:(i+1)*100/(list.length+1)}));
+        list.forEach((p,i)=>{
+          const x=reverse?100-base:base,y=(i+1)*100/(list.length+1);
+          target.push({id:p.id,name:p.name,team:teamId,group,baseX:x,baseY:y,x,y});
+        });
       }
     }
     m.pitch={ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:home,awayPlayers:away,minute:0};
   }
-  function movePitch(m,minute){
+  function syncPitchLineups(m){
+    const old=m.pitch||{};
+    buildPitch(m);
+    const next=m.pitch;
+    for(const key of ["ballX","ballY","possession","phase","minute"]){
+      if(old[key]!==undefined&&old[key]!==null)next[key]=old[key];
+    }
+  }
+  function movePitch(m,minute,homeHasBall){
     const p=m.pitch;
-    const homeHasBall=Math.random()<(Number(m.homePossession)||50)/100;
     p.possession=homeHasBall?m.home:m.away;
     p.ballX=Math.max(4,Math.min(96,p.ballX+(homeHasBall?1:-1)*(4+Math.random()*13)));
     p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*22-11)));
     p.phase=homeHasBall?(p.ballX>=67?"الثلث الهجومي":p.ballX<=33?"الثلث الدفاعي":"وسط الملعب"):(p.ballX<=33?"الثلث الهجومي":p.ballX>=67?"الثلث الدفاعي":"وسط الملعب");
     p.minute=minute;
-    for(const player of p.homePlayers)player.x=Math.max(7,Math.min(93,player.x+(homeHasBall?0.6:-0.45)));
-    for(const player of p.awayPlayers)player.x=Math.max(7,Math.min(93,player.x+(homeHasBall?-0.45:0.6)));
+    for(const player of [...p.homePlayers,...p.awayPlayers]){
+      const ownBall=player.team===p.possession;
+      if(player.group==="GK"){
+        player.x=player.baseX;
+        player.y=Math.max(43,Math.min(57,50+(p.ballY-50)*.2));
+        continue;
+      }
+      const direction=player.team===m.home?1:-1;
+      const linePush=({DEF:3,MID:6,FWD:8})[player.group]||0;
+      const tacticalPush=ownBall?linePush:-linePush*.55;
+      const ballShift=(player.team===m.home?p.ballX-50:50-p.ballX)*.08;
+      player.x=Math.max(7,Math.min(93,player.baseX+direction*tacticalPush+ballShift));
+      player.y=Math.max(7,Math.min(93,player.baseY+(p.ballY-50)*.12));
+    }
   }
   function begin(f){
     if(!f||f.status!=="scheduled")return {error:"المباراة غير متاحة"};
@@ -119,7 +141,6 @@
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
     const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
     for(let minute=start+1;minute<=end;minute++){
-      movePitch(m,minute);
       const homeChance=Math.max(.025,Math.min(.28,.075+(homeAtk-awayDef)/420+(userHome?actionBoost:0)-(userHome?0:defenseBoost)));
       const awayChance=Math.max(.025,Math.min(.28,.075+(awayAtk-homeDef)/420+(userHome?0:actionBoost)-(userHome?defenseBoost:0)));
       if(Math.random()<homeChance){
@@ -136,6 +157,8 @@
     for(let minute=start+1;minute<=end;minute++){
       const minuteUserPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)-oppFormationEffect.pos-oppStyleEffect.pos-oppPressEffect.pos+(Math.random()*8-4))));
       const minuteHomePoss=userHome?minuteUserPoss:100-minuteUserPoss;
+      const homeHasBall=Math.random()<minuteHomePoss/100;
+      movePitch(m,minute,homeHasBall);
       m.possessionHomeTotal+=minuteHomePoss;
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
@@ -209,6 +232,7 @@
     const outGroup=positionGroup(out),inGroup=positionGroup(inn);
     if(!outGroup||!inGroup||outGroup!==inGroup)return {error:"مركز البديل غير مناسب. اختر لاعباً من نفس خط اللعب: "+({GK:"حراسة المرمى",DEF:"الدفاع",MID:"الوسط",FWD:"الهجوم"}[outGroup]||"المركز نفسه")+"."};
     lineup[lineup.indexOf(out.id)]=inn.id;
+    syncPitchLineups(m);
     m.substitutedOut.push(out.id);
     // Persist the live substitution in the club starting XI for future matches.
     out.starter=false;
