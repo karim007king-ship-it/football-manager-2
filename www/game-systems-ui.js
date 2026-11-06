@@ -17,8 +17,14 @@
  function reports(){
   const list=S.matchReports||[];
   const chosen=list.find(x=>x.fixtureId===selectedReport)||list[0];
+  const playerRows=chosen?(chosen.playerRatings||[]).slice().sort((a,b)=>b.rating-a.rating).map(row=>{
+   const p=S.players.find(x=>x.id===row.playerId),st=row.stats||{};
+   const details=['أهداف '+(st.goals||0),'تمريرات ناجحة '+(st.passesCompleted||0),'افتكاكات '+(st.tackles||0),'إنذارات '+(st.yellowCards||0),'طرد '+(st.redCards||0)].join(' · ');
+   return '<div class="fm2-contract"><div><b>'+esc(p?.name||"لاعب")+'</b><small>'+esc(G.club(p?.clubId)?.short||"")+' · '+(row.minutes||0)+' دقيقة</small><small>'+details+'</small></div><b>'+Number(row.rating||0).toFixed(1)+'/10</b></div>';
+  }).join(""):"";
   let detail=chosen?'<div class="fm2-score"><small>'+esc(chosen.competition)+' · '+esc(chosen.date)+'</small><h3>'+esc(G.club(chosen.home).name)+'</h3><strong>'+chosen.homeGoals+' - '+chosen.awayGoals+'</strong><h3>'+esc(G.club(chosen.away).name)+'</h3></div>'+
-   '<div class="fm2-stat-grid">'+[['التسديدات',chosen.homeShots,chosen.awayShots],['على المرمى',chosen.homeOnTarget,chosen.awayOnTarget],['الاستحواذ',chosen.possessionHome+"%",chosen.possessionAway+"%"],['الركنيات',chosen.cornersHome,chosen.cornersAway],['التمريرات',chosen.passesHome,chosen.passesAway]].map(x=>'<div class="fm2-stat-row"><b>'+x[1]+'</b><span>'+x[0]+'</span><b>'+x[2]+'</b></div>').join("")+'</div>'
+   '<div class="fm2-stat-grid">'+[['التسديدات',chosen.homeShots,chosen.awayShots],['على المرمى',chosen.homeOnTarget,chosen.awayOnTarget],['الاستحواذ',chosen.possessionHome+"%",chosen.possessionAway+"%"],['الركنيات',chosen.cornersHome,chosen.cornersAway],['التمريرات',chosen.passesHome,chosen.passesAway],['الأخطاء',chosen.foulsHome||0,chosen.foulsAway||0],['البطاقات الصفراء',chosen.yellowCardsHome||0,chosen.yellowCardsAway||0],['البطاقات الحمراء',chosen.redCardsHome||0,chosen.redCardsAway||0]].map(x=>'<div class="fm2-stat-row"><b>'+x[1]+'</b><span>'+x[0]+'</span><b>'+x[2]+'</b></div>').join("")+'</div>'+
+   '<h3>تقييمات اللاعبين والدقائق</h3><div>'+playerRows+'</div>'
    :'<p>لا توجد تقارير بعد. ستظهر التقارير بعد لعب المباريات.</p>';
   return section("📊 تقارير المباريات",box((list.length?'<div class="fm2-report-list">'+list.slice(0,12).map(r=>btn(esc(G.club(r.home).short)+' '+r.homeGoals+' - '+r.awayGoals+' '+esc(G.club(r.away).short)+' · '+r.date,'report:'+r.fixtureId,"tiny")).join("")+'</div>':'')+detail));
  }
