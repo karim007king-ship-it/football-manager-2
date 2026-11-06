@@ -41,7 +41,7 @@ function prepareTestLineup(clubId){
   const selected=new Set([keeper.id,...outfield.map(p=>p.id)]);
   G.squad(clubId).forEach(p=>p.starter=selected.has(p.id));
 }
-// Interactive match engine: pause on match day, play six explicit 15-minute segments, and verify report persistence.
+// Interactive match engine: pause on match day, play in 15-minute segments through both stoppage-time periods, and verify report persistence.
 vm.runInContext(fs.readFileSync("www/game-match-engine.js","utf8"),context);
 G.schedule();
 const nextMatch=S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
@@ -51,10 +51,14 @@ prepareTestLineup(nextMatch.away);
 S.date=nextMatch.date;
 const paused=G.advance(1);
 if(!paused.paused||!S.liveMatch)throw Error("Match day did not pause for interactive play");
-for(const choice of ["هجومي","متوازن","ضغط عالٍ","متوازن","دفاعي","متوازن"]){
-  const step=G.stepLiveMatch(choice,15);
+const matchChoices=["هجومي","متوازن","ضغط عالٍ","متوازن","دفاعي","متوازن","هجومي","متوازن"];
+let segment=0;
+while(S.liveMatch&&segment<matchChoices.length){
+  const step=G.stepLiveMatch(matchChoices[segment],15);
   if(step.error)throw Error("Interactive match step failed: "+step.error);
+  segment++;
 }
+if(S.liveMatch)throw Error("Interactive match did not finish within the expected stoppage-time segments");
 if(S.liveMatch||nextMatch.status!=="played")throw Error("Interactive match did not finish");
 if(!S.matchReports.some(r=>r.fixtureId===nextMatch.id))throw Error("Interactive match report missing");
 const oldYear=Number(S.date.slice(0,4));
