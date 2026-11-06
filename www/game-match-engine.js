@@ -108,7 +108,7 @@
         const aerial=G.pick(forwards.length?forwards:players);
         if(aerial){const aerialStat=playerMatchStats(m,aerial);const duel=clamp(.48+(attr(aerial,"heading")-attr(marker,"heading"))*.006,.25,.85);
           if(Math.random()>duel){aerialStat.turnovers++;ds.interceptions++;matchEvent(m,minute,"المدافع يبعد الكرة قبل وصولها إلى "+aerial.name+".",{kind:"clearance",playerId:marker.id,targetId:aerial.id});advanced=false;}
-          else{carrier=aerial;assister=players.find(p=>p.id!==aerial.id)||null;}
+          else{carrier=aerial;}
         }
       }
     }else if(action==="تمريرة بينية"||!action){
