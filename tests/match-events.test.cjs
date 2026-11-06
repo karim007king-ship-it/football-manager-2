@@ -70,7 +70,14 @@ assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attackin
 // Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
 const cardMatch=m;
 cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;cardMatch.pitch.setPiece=null;
-const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
+const forceFoulAndCard=()=>{
+  // Pin the away carrier so the seeded sequence is stable even when movePitch
+  // needs to select a new carrier. Order: possession, movement, attack, picks,
+  // foul, set-piece type, injury roll, and card roll.
+  cardMatch.pitch.ballCarrierId=cardMatch.lineups[2].find(id=>S.players.find(p=>p.id===id)?.pos!=="GK")||null;
+  const values=[.5,.99,.5,.5,.01,.5,.5,.99,.5,.99,.99];let index=0;
+  math.random=()=>values[index++]??.99;
+};
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
 const yellowEvent=cardMatch.events.find(e=>e.kind==="yellow-card");
