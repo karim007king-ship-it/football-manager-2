@@ -1,12 +1,12 @@
 const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
 const store=new Map(),localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v))};
-const math=Object.create(Math);let values=[0.5,0.01,0.01,0.99,0.01,0.5],index=0;math.random=()=>values[index++]??0.5;
+const math=Object.create(Math);let values=[0.5,0.01,0.01,0.5,0.5,0.99,0.01,0.5],index=0;math.random=()=>values[index++]??0.5;
 const window={},context={window,localStorage,Date,Math:math,Intl,Number,String,JSON,console};vm.createContext(context);
 for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
 const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-06";
 const fixture={id:99601,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار الإصابات",round:"اختبار"};
 S.fixtures=[fixture];assert.equal(G.beginLiveMatch(fixture.id).success,true);
-const m=S.liveMatch;m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;m.pitch.ballCarrierId=null;
+const m=S.liveMatch;m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;m.pitch.ballCarrierId=m.lineups[1].find(id=>S.players.find(p=>p.id===id).pos!=="GK");
 G.stepLiveMatch("متوازن",1);
 const injury=m.events.find(e=>e.kind==="injury");
 assert.ok(injury,"A serious foul can trigger an in-match injury event");
