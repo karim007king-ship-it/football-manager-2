@@ -41,6 +41,21 @@ assert.equal(m.pitch.minute,m.minute,"Pitch and match clocks must stay synchroni
 assert.equal(m.playerMinutes[keeperId],1,"A substituted player must stop accumulating minutes");
 assert.equal(m.playerMinutes[reserveKeeper.id],1,"A substitute must accumulate minutes only after entering");
 assert.equal(Object.values(m.playerMinutes).reduce((a,b)=>a+b,0),44,"Only the 22 players active in each minute should receive minutes");
+// The visible ball must travel with its carrier, not stay near the old formation slot.
+const carrierDot=[...m.pitch.homePlayers,...m.pitch.awayPlayers].find(p=>p.id===m.pitch.ballCarrierId);
+if(carrierDot){
+ assert.equal(carrierDot.x,m.pitch.ballX,"The ball carrier must track the actual horizontal ball coordinate");
+ assert.equal(carrierDot.y,m.pitch.ballY,"The ball carrier must track the actual vertical ball coordinate");
+}
+// A controlled build-up should advance the ball out of midfield at a meaningful rate.
+const homeMid=m.lineups[1].map(id=>S.players.find(p=>p.id===id)).find(p=>group(p)==="MID");
+m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;m.pitch.ballCarrierId=homeMid.id;m.pitch.setPiece=null;
+math.random=()=>0.01;
+G.stepLiveMatch("متوازن",1);
+assert.ok(m.pitch.ballX>60,"A successful midfield build-up must visibly progress toward the attacking third");
+const liveCarrier=[...m.pitch.homePlayers,...m.pitch.awayPlayers].find(p=>p.id===m.pitch.ballCarrierId);
+if(liveCarrier)assert.equal(liveCarrier.x,m.pitch.ballX,"The live carrier marker must remain attached to the moving ball");
+math.random=()=>0.5;
 assert.equal(m.pitch.homePlayers.map(p=>p.id).sort().join(","),m.lineups[1].slice().sort().join(","),"Pitch players must mirror the current home lineup");
 assert.equal(m.pitch.awayPlayers.map(p=>p.id).sort().join(","),m.lineups[2].slice().sort().join(","),"Pitch players must mirror the current away lineup");
 console.log("PASS: live pitch lineup synchronization, goalkeeper positioning, minute clock, ball movement, and possession ownership");
