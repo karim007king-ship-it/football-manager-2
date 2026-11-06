@@ -127,6 +127,12 @@
           offenderStats.redCards++;
           offender.redCards=(Number(offender.redCards)||0)+1;
           offender.suspension=Math.max(2,Number(offender.suspension)||0);
+          // Count the dismissal minute and its exertion before removing the player.
+          m.playerMinutes=m.playerMinutes||{};
+          m.playerMinutes[offender.id]=(Number(m.playerMinutes[offender.id])||0)+1;
+          const offenderPressing=m.tactics?.[defendingId]?.pressing||"متوسط";
+          const offenderFatigueRate=offenderPressing==="عالٍ"?2.1:offenderPressing==="منخفض"?.35:.8;
+          offender.fatigue=Math.min(100,(Number(offender.fatigue)||0)+offenderFatigueRate);
           m.sentOff=m.sentOff||[];
           if(!m.sentOff.includes(offender.id))m.sentOff.push(offender.id);
           m.lineups[defendingId]=(m.lineups[defendingId]||[]).filter(id=>id!==offender.id);
