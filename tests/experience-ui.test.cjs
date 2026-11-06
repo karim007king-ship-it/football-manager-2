@@ -20,6 +20,10 @@ assert.ok(ui.includes('إلغاء البرنامج'), "Training UI should allow 
 
 assert.ok(ui.includes("function startMatchClock()"), "Live match should have an automatic clock");
 assert.ok(ui.includes("window.setInterval"), "The match clock should advance automatically");
+assert.ok(ui.includes("matchFinalMinute"), "The match clock should respect second-half stoppage time");
+assert.ok(ui.includes("minuteLabel(m)"), "The scoreboard should display stoppage-time minutes");
+assert.ok(ui.includes("لاعبون مصابون"), "The substitution panel should identify injured players");
+
 assert.ok(ui.includes('btn(matchPlaying?"⏸ إيقاف مؤقت"'), "The match should expose pause and resume controls");
 assert.ok(ui.includes('btn("2× سرعة مضاعفة"'), "The match should expose playback speed controls");
 assert.ok(ui.includes('match-choice:'), "In-match actions should be queued for the next automatic minute");
