@@ -9,6 +9,7 @@ assert.equal(G.beginLiveMatch(99201).success,true);
 const m=S.liveMatch;
 let r=G.stepLiveMatch("متوازن",1);assert.equal(r.minute,1,"single-minute control must advance exactly one minute");
 r=G.stepLiveMatch("هجومي",5);assert.equal(r.minute,6,"five-minute control must advance exactly five minutes");
+assert.ok(m.events.some(e=>e.minute===3&&e.kind==="commentary"),"The match should narrate a player-linked event every three minutes when no major event occurs");
 m.minute=40;r=G.stepLiveMatch("متوازن",15);assert.equal(r.minute,45,"first half must stop exactly at halftime");
 assert.equal(r.halfTime,true,"halftime pause must be signalled");
 assert.equal(m.events.filter(e=>e.minute===45&&e.text.includes("نهاية الشوط الأول")).length,1,"halftime event must be recorded once");
