@@ -1,7 +1,7 @@
 const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
-function playWith(config){
+function playWith(config,seedBase=12345){
  const store=new Map(),localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v))};
- const math=Object.create(Math);let seed=12345;math.random=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+ const math=Object.create(Math);let seed=seedBase;math.random=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
  const window={},context={window,localStorage,Date,Math:math,Intl,Number,String,JSON,console};vm.createContext(context);
  for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
  const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";
@@ -12,18 +12,23 @@ function playWith(config){
  let result;for(let i=0;i<6;i++)result=G.stepLiveMatch("متوازن",15);assert.equal(result.finished,true);
  return {possession:m.homePossession,passes:m.passesHome,tactics:m.tactics[1],fatigue:G.squad(1).filter(p=>m.lineups[1].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0),opponentFatigue:G.squad(2).filter(p=>m.lineups[2].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0),playedMinutes:Object.values(m.playerMinutes||{}).reduce((n,v)=>n+v,0)};
 }
-const baseline=playWith({});
-const possession=playWith({style:"استحواذ"});
+function averageWith(config){
+ const results=[0,1,2,3].map(i=>playWith(config,12345+i*7919));
+ const average=key=>results.reduce((sum,item)=>sum+item[key],0)/results.length;
+ return {...results[0],possession:average("possession"),passes:average("passes"),fatigue:average("fatigue"),opponentFatigue:average("opponentFatigue"),playedMinutes:average("playedMinutes")};
+}
+const baseline=averageWith({});
+const possession=averageWith({style:"استحواذ"});
 assert.ok(possession.possession>baseline.possession+2,"Possession style must increase actual possession over a full match");
 assert.ok(possession.passes>=0&&baseline.passes>=0,"Live pass totals must remain valid non-negative event counters");
-const direct=playWith({style:"لعب مباشر"});
+const direct=averageWith({style:"لعب مباشر"});
 assert.ok(direct.possession<possession.possession,"Direct play must reduce possession relative to possession style");
-const highPress=playWith({pressing:"عالٍ"}),lowPress=playWith({pressing:"منخفض"});
+const highPress=averageWith({pressing:"عالٍ"}),lowPress=averageWith({pressing:"منخفض"});
 assert.ok(highPress.possession>lowPress.possession,"High pressing must change the team's possession profile");
 assert.ok(highPress.fatigue>lowPress.fatigue,"High pressing must cause more player fatigue than low pressing");
 assert.ok(baseline.opponentFatigue>0,"The opposing team must also accumulate match fatigue");
 assert.equal(baseline.playedMinutes,22*90,"The full match must account for 90 minutes for each of 22 players");
-const attacking=playWith({formation:"4-3-3"}),defensive=playWith({formation:"3-5-2"});
+const attacking=averageWith({formation:"4-3-3"}),defensive=averageWith({formation:"3-5-2"});
 assert.ok(attacking.possession>defensive.possession,"Formation choice must affect match dynamics");
 const invalidStore=new Map(),localStorage={getItem:k=>invalidStore.get(k)||null,setItem:(k,v)=>invalidStore.set(k,String(v))};
 const window={},context={window,localStorage,Date,Math,Intl,Number,String,JSON,console};vm.createContext(context);
