@@ -239,7 +239,7 @@
     }
     S.liveMatch={fixtureId:f.id,minute:0,home:f.home,away:f.away,homeGoals:0,awayGoals:0,
       homeShots:0,awayShots:0,homeOnTarget:0,awayOnTarget:0,homePossession:50,possessionHomeTotal:0,possessionMinutes:0,cornersHome:0,cornersAway:0,
-      passesHome:0,passesAway:0,events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],playerStats:{},status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
+      passesHome:0,passesAway:0,playerMinutes:{},events:[{minute:0,text:"صافرة البداية! انطلقت المباراة."}],playerStats:{},status:"live",lastChoice:"متوازن",lineups:validatedLineups,substitutions:{},substitutionLog:[],substitutedOut:[],tactics:{[S.clubId]:{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازن"}}};
     const m=S.liveMatch;
     buildPitch(m);
     const opponentId=f.home===S.clubId?f.away:f.home;
@@ -296,7 +296,10 @@
     const oppPressEffect=({"منخفض":{atk:-1,def:2,pos:-2},"متوسط":{atk:0,def:0,pos:0},"عالٍ":{atk:1,def:4,pos:4}})[ai.pressing]||{atk:0,def:0,pos:0};
     const oppLineEffect=({"متأخرة":{atk:-1,def:3},"متوسطة":{atk:0,def:0},"متقدمة":{atk:1,def:1}})[ai.defensiveLine]||{atk:0,def:0};
     const oppWidthEffect=({"متوازنة":{atk:0,def:0},"واسعة":{atk:2,def:-1},"ضيقة":{atk:0,def:2}})[ai.width]||{atk:0,def:0};
-    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def};
+    const opponentPlayers=(m.lineups[oppId]||[]).map(pid=>S.players.find(p=>p.id===pid)).filter(Boolean);
+    const opponentAverageFatigue=opponentPlayers.length?opponentPlayers.reduce((n,p)=>n+(Number(p.fatigue)||0),0)/opponentPlayers.length:0;
+    const opponentFatiguePenalty=Math.min(5,opponentAverageFatigue/18);
+    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk-opponentFatiguePenalty,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def-opponentFatiguePenalty};
     const tactics=userTactics;
     const formationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[tactics.formation]||{atk:0,def:0,pos:0};
     const styleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[tactics.style]||{atk:0,def:0,pos:0};
@@ -337,6 +340,8 @@
       // Count the team that actually controlled the ball this minute,
       // not the pre-match probability estimate used by the turnover model.
       m.possessionHomeTotal+=homeHasBall?100:0;
+      m.playerMinutes=m.playerMinutes||{};
+      [m.home,m.away].forEach(teamId=>(m.lineups[teamId]||[]).forEach(pid=>{m.playerMinutes[pid]=(Number(m.playerMinutes[pid])||0)+1;}));
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
       positionPitchPlayers(m);
@@ -356,7 +361,13 @@
       }
     }
     m.minute=end;
-    activePlayers.forEach(p=>{p.fatigue=Math.min(100,(Number(p.fatigue)||0)+pressEffect.fatigue*(end-start));});
+    Object.entries(m.playerMinutes||{}).forEach(([pid,played])=>{
+      const player=S.players.find(p=>p.id===Number(pid));
+      if(!player||!played)return;
+      const teamPressing=m.tactics?.[player.clubId]?.pressing||"متوسط";
+      const fatigueRate=teamPressing==="عالٍ"?2.1:teamPressing==="منخفض"?.35:.8;
+      player.fatigue=Math.min(100,(Number(player.fatigue)||0)+fatigueRate*Number(played));
+    });
     if(m.minute===45&&start<45)m.events.unshift({minute:45,text:"نهاية الشوط الأول. حان وقت تعديل الخطة."});
     if(m.minute===90){finish(f,m);return {finished:true,match:m};}
     G.save();return {finished:false,halfTime:m.minute===45&&start<45,minute:m.minute,match:m};
