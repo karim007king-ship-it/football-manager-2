@@ -103,26 +103,3 @@ assert.ok(report.playerRatings.some(p=>p.playerId===bookedId&&p.stats.redCards==
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,1,"The red-card suspension must remain after the match is completed");
 console.log("PASS: fouls, yellow cards, second-yellow red cards, ten-player continuation, and report/suspension accounting");
 console.log("PASS: player-linked attacks, player decisions, goal/assist credit, appearances, and match ratings");
-
-// Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
-const cardMatch=m;
-cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
-const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
-forceFoulAndCard();
-G.stepLiveMatch("متوازن",1);
-const yellowEvent=cardMatch.events.find(e=>e.kind==="yellow-card");
-assert.ok(yellowEvent,"A disciplinary foul can produce a yellow card");
-const bookedId=yellowEvent.playerId;
-assert.equal(cardMatch.playerStats[String(bookedId)].yellowCards,1,"The first booking must be recorded in match statistics");
-cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;
-forceFoulAndCard();
-G.stepLiveMatch("متوازن",1);
-assert.ok(cardMatch.events.some(e=>e.kind==="yellow-card"&&e.playerId===bookedId&&e.second),"The second yellow must be logged before dismissal");
-assert.ok(cardMatch.events.some(e=>e.kind==="red-card"&&e.playerId===bookedId),"A second yellow card must dismiss the same player");
-assert.ok(cardMatch.sentOff.includes(bookedId),"The dismissed player must be recorded separately");
-assert.ok(!cardMatch.lineups[2].includes(bookedId),"The dismissed player must leave the active lineup");
-assert.equal(cardMatch.lineups[2].length,10,"The dismissed team must continue with ten players");
-assert.equal(cardMatch.playerStats[String(bookedId)].redCards,1,"The dismissal must be included in player match statistics");
-const activeAway=cardMatch.lineups[2][0];
-assert.ok(G.substituteLiveMatch(activeAway,bookedId).error,"A dismissed player must not be allowed back as a substitute");
-assert.equal(S.players.find(p=>p.id===bookedId).suspension,2,"A dismissal must schedule a one-match suspension after the current fixture");
