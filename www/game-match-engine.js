@@ -123,6 +123,7 @@
         offenderStats.yellowCards++;
         offender.yellowCards=(Number(offender.yellowCards)||0)+1;
         if(offenderStats.yellowCards>=2){
+          matchEvent(m,minute,"🟨 الإنذار الثاني لـ "+offender.name+" بعد مخالفة جديدة.",{kind:"yellow-card",playerId:offender.id,second:true});
           offenderStats.redCards++;
           offender.redCards=(Number(offender.redCards)||0)+1;
           offender.suspension=Math.max(2,Number(offender.suspension)||0);
