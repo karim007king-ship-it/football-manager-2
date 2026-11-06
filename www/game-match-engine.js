@@ -253,6 +253,20 @@
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
       m.passesHome+=Math.round(5.5*(minuteHomePoss/50)*(userHome?possessionFactor:1));
       m.passesAway+=Math.round(5.5*((100-minuteHomePoss)/50)*(userHome?1:possessionFactor));
+      if(minute%3===0&&!m.events.some(e=>e.minute===minute)){
+        const possessionTeam=homeHasBall?m.home:m.away;
+        const active=(m.lineups[possessionTeam]||[]).map(id=>S.players.find(p=>p.id===id)).filter(Boolean);
+        const carriers=active.filter(p=>positionGroup(p)==="MID"||positionGroup(p)==="FWD");
+        const narrator=G.pick(carriers.length?carriers:active);
+        if(narrator){
+          const teamName=G.club(possessionTeam)?.short||"الفريق";
+          const phase=m.pitch.phase||"وسط الملعب";
+          const line=phase==="الثلث الهجومي"?"يتقدم "+narrator.name+" بالكرة نحو منطقة الجزاء ويبحث عن خيار هجومي.":
+            phase==="الثلث الدفاعي"?"يتراجع "+narrator.name+" للمساندة ويحاول فريقه الخروج بالكرة.":
+            "يتبادل "+teamName+" التمريرات في وسط الملعب، والكرة مع "+narrator.name+".";
+          matchEvent(m,minute,"🎙️ "+line,{kind:"commentary",playerId:narrator.id});
+        }
+      }
     }
     m.minute=end;
     activePlayers.forEach(p=>{p.fatigue=Math.min(100,(Number(p.fatigue)||0)+pressEffect.fatigue*(end-start));});
