@@ -69,7 +69,7 @@ assert.ok(m.events.every(e=>!e.kind||typeof e.kind==="string"),"Event metadata m
 assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attacking combinations must credit assists");
 // Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
 const cardMatch=m;
-cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
+cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;cardMatch.pitch.setPiece=null;
 const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
