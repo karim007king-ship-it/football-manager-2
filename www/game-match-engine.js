@@ -24,7 +24,7 @@
       });
       outfield.slice(cursor).forEach((p,i)=>{const y=(i+1)*100/(outfield.length-cursor+1);target.push({id:p.id,name:p.name,team:teamId,group:positionGroup(p)||"MID",baseX:50,baseY:y,x:50,y});});
     }
-    m.pitch={ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:home,awayPlayers:away,minute:0};
+    m.pitch={ballX:50,ballY:50,possession:m.home,ballCarrierId:null,phase:"وسط الملعب",homePlayers:home,awayPlayers:away,minute:0};
   }
   function syncPitchLineups(m){
     const old=m.pitch||{};
@@ -58,6 +58,7 @@
     const previousPossession=p.possession;
     p.possession=homeHasBall?m.home:m.away;
     const direction=homeHasBall?1:-1,changed=previousPossession!==p.possession;
+    if(changed)p.ballCarrierId=null;
     const travel=changed?(4+Math.random()*5):(1+Math.random()*3);
     p.ballX=Math.max(4,Math.min(96,p.ballX+direction*travel));
     p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*10-5)));
@@ -85,7 +86,7 @@
     const backs=defenders.filter(p=>positionGroup(p)==="DEF"||positionGroup(p)==="MID");
     const ballX=Number(m.pitch?.ballX??50);
     const attackingThird=teamId===m.home?ballX>=68:ballX<=32;
-    let carrier=G.pick(attackingThird?(forwards.length?forwards:mids.length?mids:players):(mids.length?mids:forwards.length?forwards:players));
+    let carrier=players.find(p=>p.id===m.pitch?.ballCarrierId)||G.pick(attackingThird?(forwards.length?forwards:mids.length?mids:players):(mids.length?mids:forwards.length?forwards:players));
     const receiver=G.pick([...forwards,...mids].filter(p=>p&&p.id!==carrier?.id));
     const marker=G.pick(backs.length?backs:defenders);
     const keeper=defenders.find(p=>positionGroup(p)==="GK")||defenders[0];
@@ -101,7 +102,7 @@
       if(Math.random()<tackleChance){
         ts.tackles++;ts.interceptions++;
         matchEvent(m,minute,"🛡️ "+tackler.name+" ينجح في إيقاف الهجمة بعد قرارك: "+defensiveAction+".",{kind:"tackle",playerId:tackler.id,targetId:carrier.id});
-        m.pitch.possession=defendingId;return;
+        m.pitch.possession=defendingId;m.pitch.ballCarrierId=tackler.id;return;
       }
     }
     // Outside the attacking third, resolve build-up play first; shots are only
@@ -114,7 +115,7 @@
         const dribbleChance=clamp(.48+(attr(carrier,"dribbling")-attr(buildMarker,"tackling"))*.006,.25,.84);
         if(Math.random()>dribbleChance){
           cs.turnovers++;ds.tackles++;
-          m.pitch.possession=defendingId;
+          m.pitch.possession=defendingId;m.pitch.ballCarrierId=buildMarker.id;
           matchEvent(m,minute,"🛡️ "+buildMarker.name+" يوقف تقدم "+carrier.name+" قبل الوصول إلى الثلث الهجومي.",{kind:"tackle",playerId:buildMarker.id,targetId:carrier.id});
           return;
         }
@@ -124,7 +125,7 @@
         const passChance=clamp(.61+(attr(carrier,"passing")-attr(buildMarker,"positioning"))*.004+(buildAction==="تمريرة بينية"?.1:0),.3,.91);
         if(Math.random()>passChance){
           cs.turnovers++;ds.interceptions++;
-          m.pitch.possession=defendingId;
+          m.pitch.possession=defendingId;m.pitch.ballCarrierId=buildMarker.id;
           matchEvent(m,minute,"⛔ "+buildMarker.name+" يقطع محاولة بناء اللعب من "+carrier.name+".",{kind:"interception",playerId:buildMarker.id,targetId:carrier.id});
           return;
         }
@@ -139,7 +140,7 @@
       const progress=buildAction==="تمريرة بينية"?15:buildAction==="مراوغة"?12:10;
       m.pitch.ballX=clamp(ballX+(teamId===m.home?1:-1)*(progress+Math.random()*4),4,96);
       m.pitch.ballY=clamp(Number(m.pitch.ballY||50)+(Math.random()*12-6),8,92);
-      m.pitch.possession=teamId;
+      m.pitch.possession=teamId;m.pitch.ballCarrierId=(receiver||carrier).id;
       m.pitch.phase=(teamId===m.home?m.pitch.ballX>=68:m.pitch.ballX<=32)?"الثلث الهجومي":(teamId===m.home?m.pitch.ballX<=32:m.pitch.ballX>=68)?"الثلث الدفاعي":"وسط الملعب";
       return;
     }
@@ -150,21 +151,21 @@
       if(Math.random()>chance){
         cs.turnovers++;ds.tackles++;ds.interceptions++;
         matchEvent(m,minute,"🛡️ "+marker.name+" ينجح في افتكاك الكرة من "+carrier.name+".",{kind:"tackle",playerId:marker.id,targetId:carrier.id});
-        m.pitch.possession=defendingId;advanced=false;
+        m.pitch.possession=defendingId;m.pitch.ballCarrierId=marker.id;advanced=false;
       }else matchEvent(m,minute,"✨ "+carrier.name+" يتجاوز "+marker.name+" بمراوغة ناجحة.",{kind:"dribble",playerId:carrier.id,targetId:marker.id});
     }else if(action==="عرضية"){
       cs.passes++;const chance=clamp(.58+(attr(carrier,"crossing")-attr(marker,"marking"))*.005,.3,.9);
       if(Math.random()>chance){
         cs.turnovers++;ds.interceptions++;
         matchEvent(m,minute,"🛡️ "+marker.name+" يقطع عرضية "+carrier.name+".",{kind:"interception",playerId:marker.id,targetId:carrier.id});
-        m.pitch.possession=defendingId;advanced=false;
+        m.pitch.possession=defendingId;m.pitch.ballCarrierId=marker.id;advanced=false;
       }else{
         cs.passesCompleted++;if(teamId===m.home)m.passesHome++;else m.passesAway++;assister=carrier;
         matchEvent(m,minute,"📨 "+carrier.name+" يرسل عرضية متقنة إلى منطقة الجزاء.",{kind:"cross",playerId:carrier.id});
         const aerial=G.pick(forwards.length?forwards:players);
         if(aerial){const aerialStat=playerMatchStats(m,aerial);const duel=clamp(.48+(attr(aerial,"heading")-attr(marker,"heading"))*.006,.25,.85);
-          if(Math.random()>duel){aerialStat.turnovers++;ds.interceptions++;matchEvent(m,minute,"المدافع يبعد الكرة قبل وصولها إلى "+aerial.name+".",{kind:"clearance",playerId:marker.id,targetId:aerial.id});advanced=false;}
-          else{carrier=aerial;}
+          if(Math.random()>duel){aerialStat.turnovers++;ds.interceptions++;m.pitch.ballCarrierId=marker.id;matchEvent(m,minute,"المدافع يبعد الكرة قبل وصولها إلى "+aerial.name+".",{kind:"clearance",playerId:marker.id,targetId:aerial.id});advanced=false;}
+          else{carrier=aerial;m.pitch.ballCarrierId=aerial.id;}
         }
       }
     }else if(action==="تمريرة بينية"||!action){
@@ -177,18 +178,19 @@
       }else{
         cs.passesCompleted++;if(teamId===m.home)m.passesHome++;else m.passesAway++;assister=carrier;
         if(receiver)matchEvent(m,minute,action==="تمريرة بينية"?"🎯 "+carrier.name+" يخترق الدفاع بتمريرة بينية إلى "+receiver.name+".":"🔄 "+carrier.name+" يمرر الكرة إلى "+receiver.name+".",{kind:action==="تمريرة بينية"?"through-ball":"pass",playerId:carrier.id,targetId:receiver.id});
-        if(receiver)carrier=receiver;
+        if(receiver){carrier=receiver;m.pitch.ballCarrierId=receiver.id;}
       }
     }
     if(!advanced)return;
     const shotPlayer=carrier,shotStats=playerMatchStats(m,shotPlayer),keeperSkill=attr(keeper,"goalkeeping");
+    m.pitch.ballCarrierId=shotPlayer.id;
     shotStats.shots++;
     if(teamId===m.home)m.homeShots++;else m.awayShots++;
     matchEvent(m,minute,"⚽ "+shotPlayer.name+" يستعد للتسديد على المرمى.",{kind:"shot",playerId:shotPlayer.id});
     const accuracy=clamp(.39+(attr(shotPlayer,"finishing")-60)*.005+(attr(shotPlayer,"shotPower")-60)*.002-defensivePressure,.2,.88);
     if(Math.random()>accuracy){
       matchEvent(m,minute,"تسديدة "+shotPlayer.name+" تمر خارج المرمى، وتتحول الكرة إلى ضربة مرمى.",{kind:"shot-off-target",playerId:shotPlayer.id});
-      m.pitch.possession=defendingId;
+      m.pitch.possession=defendingId;m.pitch.ballCarrierId=keeper.id;
       m.pitch.ballX=teamId===m.home?92:8;
       m.pitch.phase=teamId===m.home?"الثلث الدفاعي":"الثلث الدفاعي";
       return;
@@ -202,7 +204,7 @@
       if(assister&&assister.id!==shotPlayer.id)playerMatchStats(m,assister).assists++;
       matchEvent(m,minute,"🥅 هدف! "+shotPlayer.name+" يسجل بعد هجمة منظمة، والحارس "+keeper.name+" لم يتمكن من التصدي.",{kind:"goal",playerId:shotPlayer.id,assistId:assister&&assister.id||null});
       // Restart from the centre with the conceding team in possession.
-      m.pitch.possession=defendingId;m.pitch.ballX=50;m.pitch.ballY=50;m.pitch.phase="وسط الملعب";
+      m.pitch.possession=defendingId;m.pitch.ballCarrierId=null;m.pitch.ballX=50;m.pitch.ballY=50;m.pitch.phase="وسط الملعب";
     }else{
       ks.saves++;
       matchEvent(m,minute,"🧤 "+keeper.name+" يتصدى لتسديدة "+shotPlayer.name+" ويحافظ على شباكه.",{kind:"save",playerId:keeper.id,targetId:shotPlayer.id});
@@ -210,9 +212,9 @@
       if(corner){
         if(teamId===m.home)m.cornersHome++;else m.cornersAway++;
         matchEvent(m,minute,"🚩 ركنية للفريق المهاجم بعد إبعاد الحارس للكرة.",{kind:"corner",teamId});
-        m.pitch.possession=teamId;m.pitch.ballX=teamId===m.home?96:4;m.pitch.phase="الثلث الهجومي";
+        m.pitch.possession=teamId;m.pitch.ballCarrierId=null;m.pitch.ballX=teamId===m.home?96:4;m.pitch.phase="الثلث الهجومي";
       }else{
-        m.pitch.possession=defendingId;m.pitch.ballX=teamId===m.home?92:8;m.pitch.phase="الثلث الدفاعي";
+        m.pitch.possession=defendingId;m.pitch.ballCarrierId=keeper.id;m.pitch.ballX=teamId===m.home?92:8;m.pitch.phase="الثلث الدفاعي";
       }
     }
   }
