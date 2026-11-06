@@ -58,8 +58,10 @@
    '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/90*100)+'%"></i></div><small>'+m.minute+' من 90 دقيقة</small></div>'+
    section("ملعب المباراة المباشر",card((()=>{
       const p=m.pitch||{ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:[],awayPlayers:[]};
-      const dots=[...(p.homePlayers||[]).map(x=>({...x,side:"home"})),...(p.awayPlayers||[]).map(x=>({...x,side:"away"}))].map(x=>'<span class="ex-pitch-player '+x.side+'" style="left:'+pct(x.x)+'%;top:'+pct(x.y)+'%" title="'+esc(x.name)+'">'+(x.side==="home"?"●":"◆")+'</span>').join("");
-      const ball='<span class="ex-match-ball" style="left:'+pct(p.ballX)+'%;top:'+pct(p.ballY)+'%">⚽</span>';
+      const pitchPlayers=[...(p.homePlayers||[]).map(x=>({...x,side:"home"})),...(p.awayPlayers||[]).map(x=>({...x,side:"away"}))];
+      const dots=pitchPlayers.map(x=>'<span class="ex-pitch-player '+x.side+(x.id===p.ballCarrierId?" carrier":"")+'" style="left:'+pct(x.x)+'%;top:'+pct(x.y)+'%" title="'+esc(x.name)+'">'+(x.side==="home"?"●":"◆")+'</span>').join("");
+      const carrier=pitchPlayers.find(x=>x.id===p.ballCarrierId);
+      const ball='<span class="ex-match-ball" style="left:'+pct(carrier?carrier.x:p.ballX)+'%;top:'+pct(carrier?carrier.y:p.ballY)+'%">⚽</span>';
       return '<div class="ex-live-pitch"><div class="ex-pitch-half"></div><div class="ex-pitch-circle"></div><div class="ex-pitch-box left"></div><div class="ex-pitch-box right"></div>'+dots+ball+'</div><div class="ex-pitch-legend"><span>● '+esc(h.short)+'</span><span>◆ '+esc(a.short)+'</span></div><p class="ex-muted">الكرة لدى: <b>'+esc(G.club(p.possession)?.short||"—")+'</b> · '+esc(p.phase||"وسط الملعب")+'</p>';
     })()))+
    section("قراراتك داخل الملعب",card((()=>{
@@ -182,7 +184,7 @@
  .ex-pitch-box{position:absolute;top:27%;height:46%;width:11%;border:2px solid #ffffff9c}
  .ex-pitch-box.left{left:0;border-left:0}.ex-pitch-box.right{right:0;border-right:0}
  .ex-pitch-player{position:absolute;z-index:2;transform:translate(-50%,-50%);display:grid;place-items:center;width:17px;height:17px;border-radius:50%;font-size:13px;text-shadow:0 1px 2px #000;transition:left .35s ease,top .35s ease}
- .ex-pitch-player.home{color:#ffe17c;background:#173d2b;border:1px solid #fff0a8}.ex-pitch-player.away{color:#d9ecff;background:#1b3556;border:1px solid #d9ecff}
+ .ex-pitch-player.home{color:#ffe17c;background:#173d2b;border:1px solid #fff0a8}.ex-pitch-player.away{color:#d9ecff;background:#1b3556;border:1px solid #d9ecff}.ex-pitch-player.carrier{box-shadow:0 0 0 3px #f1c65f,0 0 10px #f1c65f;z-index:3}
  .ex-match-ball{position:absolute;z-index:4;transform:translate(-50%,-50%);font-size:19px;filter:drop-shadow(0 1px 2px #000);transition:left .35s ease,top .35s ease}
  .ex-pitch-legend{display:flex;justify-content:space-between;font-size:10px;color:#cbd9df;margin-top:7px}
  .ex-match-banner{display:flex;justify-content:space-between;color:#f1c65f;font-size:11px;font-weight:900;padding:7px 3px}
