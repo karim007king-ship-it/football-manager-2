@@ -5,12 +5,16 @@ const window={},context={window,localStorage,Date,Math:math,Intl,Number,String,J
 for(const file of ["www/game-database.js","www/game-core.js","www/game-match-engine.js"])vm.runInContext(fs.readFileSync(file,"utf8"),context);
 const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";
 S.fixtures=[{id:99301,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار",round:"اختبار"}];
+G.club(2).formation="3-5-2";
 const group=p=>{const x=p.primaryPosition||p.pos;return x==="GK"?"GK":["CB","LB","RB","DEF"].includes(x)?"DEF":["DM","CM","AM","MID"].includes(x)?"MID":["LW","RW","ST","FWD"].includes(x)?"FWD":null};
 const squad=G.squad(1),starters=squad.filter(p=>p.starter&&!p.injured&&!p.suspension),bench=squad.filter(p=>!p.starter&&!p.injured&&!p.suspension);
 assert.equal(G.beginLiveMatch(99301).success,true);
 const m=S.liveMatch;
 assert.equal(m.pitch.homePlayers.length,11,"Home pitch must start with eleven players");
 assert.equal(m.pitch.awayPlayers.length,11,"Away pitch must start with eleven players");
+assert.equal(m.pitch.awayPlayers.filter(p=>p.baseX===78).length,3,"Opponent 3-5-2 must begin with three defenders");
+assert.equal(m.pitch.awayPlayers.filter(p=>p.baseX===61).length,5,"Opponent 3-5-2 must begin with five midfielders");
+assert.equal(m.pitch.awayPlayers.filter(p=>p.baseX===41).length,2,"Opponent 3-5-2 must begin with two forwards");
 const keeperId=m.lineups[1].find(id=>group(squad.find(p=>p.id===id))==="GK");
 const keeperDot=m.pitch.homePlayers.find(p=>p.id===keeperId);
 assert.ok(keeperDot,"Starting goalkeeper must be visible on the pitch");
