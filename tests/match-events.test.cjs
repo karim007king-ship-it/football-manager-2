@@ -14,6 +14,17 @@ G.stepLiveMatch("متوازن",1);
 assert.equal(m.pitch.possession,1,"A team should retain possession when no turnover or failed action occurs");
 G.stepLiveMatch("متوازن",1);
 assert.equal(m.pitch.possession,1,"Possession continuity must survive consecutive minutes");
+assert.equal(m.homePossession,100,"Possession statistics must count actual minute-by-minute ball control, not expected probabilities");
+// A goal must trigger a centre restart with the conceding side taking possession.
+math.random=()=>0.01;
+m.pitch.possession=1;m.pitch.ballX=78;m.pitch.ballY=50;
+const goalsBefore=m.homeGoals;
+G.stepLiveMatch("تسديد",1);
+assert.equal(m.homeGoals,goalsBefore+1,"A clear high-quality shot test should produce a goal");
+assert.equal(m.pitch.possession,2,"The team conceding a goal must restart with possession");
+assert.equal(m.pitch.ballX,50,"After a goal the ball must return to the centre");
+assert.equal(m.pitch.ballY,50,"After a goal the ball must return to the centre");
+math.random=()=>0.5;
 // A live formation change must visibly rebuild player lanes without resetting ball state.
 const ballBefore={x:m.pitch.ballX,y:m.pitch.ballY};
 const oldLine=m.pitch.homePlayers.map(p=>p.baseX).join(",");
