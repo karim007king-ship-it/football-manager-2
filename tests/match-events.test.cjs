@@ -67,6 +67,29 @@ assert.ok(m.events.some(e=>e.kind==="goal"||e.kind==="save"||e.kind==="shot-off-
 assert.ok(m.playerStats[String(opponentKeeper)],"Opposing goalkeeper should receive match stats when defending");
 assert.ok(m.events.every(e=>!e.kind||typeof e.kind==="string"),"Event metadata must be serializable");
 assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attacking combinations must credit assists");
+// Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
+const cardMatch=m;
+cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;
+const forceFoulAndCard=()=>{const values=[.5,.01,.5,.5,.5,.01,.5,.5,.99,.99];let index=0;math.random=()=>values[index++]??.5;};
+forceFoulAndCard();
+G.stepLiveMatch("متوازن",1);
+const yellowEvent=cardMatch.events.find(e=>e.kind==="yellow-card");
+assert.ok(yellowEvent,"A disciplinary foul can produce a yellow card");
+const bookedId=yellowEvent.playerId;
+assert.equal(cardMatch.playerStats[String(bookedId)].yellowCards,1,"The first booking must be recorded in match statistics");
+cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;
+forceFoulAndCard();
+G.stepLiveMatch("متوازن",1);
+assert.ok(cardMatch.events.some(e=>e.kind==="yellow-card"&&e.playerId===bookedId&&e.second),"The second yellow must be logged before dismissal");
+assert.ok(cardMatch.events.some(e=>e.kind==="red-card"&&e.playerId===bookedId),"A second yellow card must dismiss the same player");
+assert.ok(cardMatch.sentOff.includes(bookedId),"The dismissed player must be recorded separately");
+assert.ok(!cardMatch.lineups[2].includes(bookedId),"The dismissed player must leave the active lineup");
+assert.equal(cardMatch.lineups[2].length,10,"The dismissed team must continue with ten players");
+assert.equal(cardMatch.playerStats[String(bookedId)].redCards,1,"The dismissal must be included in player match statistics");
+const activeAway=cardMatch.lineups[2][0];
+assert.ok(G.substituteLiveMatch(activeAway,bookedId).error,"A dismissed player must not be allowed back as a substitute");
+assert.equal(S.players.find(p=>p.id===bookedId).suspension,2,"A dismissal must schedule a one-match suspension after the current fixture");
+math.random=()=>0.5;
 m.minute=89;G.stepLiveMatch("متوازن",1);
 const scorerStat=Object.values(m.playerStats).find(x=>x.goals>0);
 assert.ok(scorerStat,"At least one goal must have a recorded scorer");
@@ -76,6 +99,9 @@ assert.equal(scorer.apps,1,"Players who participated must receive a match appear
 const report=G.getReport(fixture.id);
 assert.equal(report.playerRatings.length,22,"Report must rate all starting participants");
 assert.ok(report.playerRatings.some(x=>x.stats&&Object.values(x.stats).some(v=>typeof v==="number"&&v>0)),"Ratings must include event-derived player statistics");
+assert.ok(report.playerRatings.some(p=>p.playerId===bookedId&&p.stats.redCards===1),"The match report must include dismissed players and their cards");
+assert.equal(S.players.find(p=>p.id===bookedId).suspension,1,"The red-card suspension must remain after the match is completed");
+console.log("PASS: fouls, yellow cards, second-yellow red cards, ten-player continuation, and report/suspension accounting");
 console.log("PASS: player-linked attacks, player decisions, goal/assist credit, appearances, and match ratings");
 
 // Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
@@ -100,8 +126,3 @@ assert.equal(cardMatch.playerStats[String(bookedId)].redCards,1,"The dismissal m
 const activeAway=cardMatch.lineups[2][0];
 assert.ok(G.substituteLiveMatch(activeAway,bookedId).error,"A dismissed player must not be allowed back as a substitute");
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,2,"A dismissal must schedule a one-match suspension after the current fixture");
-cardMatch.minute=89;math.random=()=>0.5;G.stepLiveMatch("متوازن",1);
-const cardReport=G.getReport(fixture.id);
-assert.ok(cardReport.playerRatings.some(p=>p.playerId===bookedId&&p.stats.redCards===1),"The match report must include dismissed players and their cards");
-assert.equal(S.players.find(p=>p.id===bookedId).suspension,1,"The red-card suspension must remain after the match is completed");
-console.log("PASS: fouls, yellow cards, second-yellow red cards, ten-player continuation, and report/suspension accounting");
