@@ -88,7 +88,7 @@
       const outgoing=team.find(p=>p.id===selectedSubOut),compatible=bench.filter(p=>outgoing&&positionGroup(p)===positionGroup(outgoing));
       return '<p class="ex-muted">اختر بديلاً للاعب '+esc((outgoing||{}).name||"")+' · المركز: '+positionLabel(outgoing)+' · المتبقي: '+(5-used)+'</p>'+(compatible.length?compatible.map(p=>btn("دخول: "+esc(p.name)+" · "+positionLabel(p),"sub-in:"+p.id,"mini")).join(""):'<p class="ex-muted">لا يوجد بديل متاح من خط اللعب نفسه في قائمة الفريق.</p>')+btn("إلغاء الاختيار","sub-cancel","mini");
     })()))+
-   section("أحداث المباراة",card('<div class="ex-events">'+m.events.slice(0,18).map(e=>'<div><b>'+e.minute+'′</b><span>'+esc(e.text)+'</span></div>').join("")+'</div>'))+
+   section("أحداث المباراة",card('<div class="ex-events">'+m.events.slice(0,18).map(e=>'<div><b>'+minuteLabel({...m,minute:e.minute})+'</b><span>'+esc(e.text)+'</span></div>').join("")+'</div>'))+
    section("إحصائيات مباشرة",card('<div class="ex-live-stats">'+[['الاستحواذ',m.homePossession+"%",(100-m.homePossession)+"%"],['التمريرات الناجحة',m.passesHome||0,m.passesAway||0],['التسديدات',m.homeShots,m.awayShots],['على المرمى',m.homeOnTarget,m.awayOnTarget],['الركنيات',m.cornersHome,m.cornersAway],['الأخطاء',matchStat(m,m.home,"fouls"),matchStat(m,m.away,"fouls")],['البطاقات الصفراء',matchStat(m,m.home,"yellowCards"),matchStat(m,m.away,"yellowCards")],['البطاقات الحمراء',matchStat(m,m.home,"redCards"),matchStat(m,m.away,"redCards")]].map(x=>'<div><b>'+x[1]+'</b><span>'+x[0]+'</span><b>'+x[2]+'</b></div>').join("")+'</div>'));
  }
  function training(){
