@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const assert = require("node:assert/strict");
 
 const ui = fs.readFileSync("www/game-experience-ui.js", "utf8");
+const systemsUi = fs.readFileSync("www/game-systems-ui.js", "utf8");
 
 assert.ok(ui.includes('btn("🏋️ التدريب","training")'), "Training shortcut should be present");
 assert.ok(ui.includes('btn("🎙️ الصحافة","press")'), "Press shortcut should be present");
@@ -27,3 +28,7 @@ assert.ok(ui.includes('visibilitychange'), "The match clock should pause safely 
 assert.ok(!ui.includes('btn("تقدم دقيقة واحدة","step:متوازن:1"'), "The main match UI should not require pressing a button for every minute");
 assert.ok(ui.includes("players.filter(p=>positionGroup(p)===pos)"), "The live lineup must group all natural position variants correctly");
 assert.ok(ui.includes('x.id===p.ballCarrierId?" carrier":""'), "The live pitch must highlight the player carrying the ball");
+
+assert.ok(systemsUi.includes("row.minutes"), "Match reports should display actual player minutes");
+assert.ok(systemsUi.includes("chosen.yellowCardsHome")&&systemsUi.includes("chosen.redCardsHome"), "Match reports should display team discipline totals");
+assert.ok(systemsUi.includes("تقييمات اللاعبين والدقائق"), "Match reports should include player ratings and playing time");
