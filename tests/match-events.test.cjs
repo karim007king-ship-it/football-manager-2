@@ -26,7 +26,14 @@ assert.ok(m.homeShots+m.awayShots>0,"A resolved attack must increment shot stati
 assert.ok(m.events.some(e=>e.kind==="goal"||e.kind==="save"||e.kind==="shot-off-target"),"Attack must resolve into goal, save, or off-target shot");
 assert.ok(m.playerStats[String(opponentKeeper)],"Opposing goalkeeper should receive match stats when defending");
 assert.ok(m.events.every(e=>!e.kind||typeof e.kind==="string"),"Event metadata must be serializable");
-G.createMatchReport(fixture,m);const report=G.getReport(fixture.id);
+assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attacking combinations must credit assists");
+m.minute=89;G.stepLiveMatch("متوازن",1);
+const scorerStat=Object.values(m.playerStats).find(x=>x.goals>0);
+assert.ok(scorerStat,"At least one goal must have a recorded scorer");
+const scorer=S.players.find(p=>p.id===scorerStat.playerId);
+assert.equal(scorer.goals,scorerStat.goals,"Career goals must be credited to the actual match scorer");
+assert.equal(scorer.apps,1,"Players who participated must receive a match appearance");
+const report=G.getReport(fixture.id);
 assert.equal(report.playerRatings.length,22,"Report must rate all starting participants");
 assert.ok(report.playerRatings.some(x=>x.stats&&Object.values(x.stats).some(v=>typeof v==="number"&&v>0)),"Ratings must include event-derived player statistics");
-console.log("PASS: player-linked attack chains, shot outcomes, keeper involvement, event stats, and report ratings");
+console.log("PASS: player-linked attacks, player decisions, goal/assist credit, appearances, and match ratings");
