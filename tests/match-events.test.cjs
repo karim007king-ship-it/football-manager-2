@@ -30,14 +30,14 @@ assert.ok(m.events.some(e=>e.kind==="pass"||e.kind==="through-ball"||e.kind==="b
 assert.ok(m.pitch.ballX>50,"Successful build-up must move the ball toward the opponent's goal");
 assert.ok(m.passesHome>0,"Completed team pass statistics must come from actual successful passes");
 // Once the ball enters the attacking third, the attack may resolve into a shot.
-m.pitch.possession=1;m.pitch.ballX=64;m.pitch.ballY=50;
+m.pitch.possession=2;m.pitch.ballX=64;m.pitch.ballY=50;
 G.stepLiveMatch("تسديد",1);
 assert.ok(m.homeShots+m.awayShots>0,"Attacks reaching the final third must be able to produce shots");
-m.pitch.possession=1;m.pitch.ballX=78;m.pitch.ballY=50;
+m.pitch.possession=2;m.pitch.ballX=78;m.pitch.ballY=50;
 G.stepLiveMatch("تسديد",1);
-m.pitch.possession=1;m.pitch.ballX=80;G.stepLiveMatch("تمريرة بينية",1);
-m.pitch.possession=1;m.pitch.ballX=80;G.stepLiveMatch("مراوغة",1);
-m.pitch.possession=1;m.pitch.ballX=80;G.stepLiveMatch("عرضية",1);
+m.pitch.possession=2;m.pitch.ballX=80;G.stepLiveMatch("تمريرة بينية",1);
+m.pitch.possession=2;m.pitch.ballX=80;G.stepLiveMatch("مراوغة",1);
+m.pitch.possession=2;m.pitch.ballX=80;G.stepLiveMatch("عرضية",1);
 const goalOrShot=m.events.find(e=>["goal","shot","shot-off-target","save"].includes(e.kind)&&e.playerId);
 assert.ok(m.events.some(e=>e.kind==="through-ball"),"Through-ball choice must create a player-linked passing event");
 assert.ok(m.events.some(e=>e.kind==="dribble"),"Dribble choice must create a player-linked dribble event");
