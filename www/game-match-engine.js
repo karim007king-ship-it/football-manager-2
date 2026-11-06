@@ -78,6 +78,15 @@
     const defensiveAction=userAction&&defendingId===S.clubId?userAction:"";
     const attr=(p,k)=>Number(p?.attributes?.[k]??p?.ovr??60);
     const cs=playerMatchStats(m,carrier),ds=playerMatchStats(m,marker||keeper),ks=playerMatchStats(m,keeper);
+    if(defensiveAction){
+      const tackler=marker||keeper,ts=playerMatchStats(m,tackler);
+      const tackleChance=clamp(.18+(attr(tackler,"tackling")-60)*.006+(defensiveAction==="افتكاك الكرة"?.24:defensiveAction==="ضغط على حامل الكرة"?.12:0),.08,.68);
+      if(Math.random()<tackleChance){
+        ts.tackles++;ts.interceptions++;
+        matchEvent(m,minute,"🛡️ "+tackler.name+" ينجح في إيقاف الهجمة بعد قرارك: "+defensiveAction+".",{kind:"tackle",playerId:tackler.id,targetId:carrier.id});
+        m.pitch.possession=defendingId;return;
+      }
+    }
     let advanced=true,assister=null;
     if(action==="مراوغة"){
       cs.dribbles++;
@@ -236,8 +245,8 @@
       const homeChance=clamp(.07+(homeAtk-awayDef)/520+(userHome?actionBoost:0)-(userHome?0:defenseBoost),.025,.24);
       const awayChance=clamp(.07+(awayAtk-homeDef)/520+(userHome?0:actionBoost)-(userHome?defenseBoost:0),.025,.24);
       const userAction=["تسديد","تمريرة بينية","مراوغة","عرضية","ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)?choiceKey:"";
-      if(Math.random()<homeChance)resolveAttack(m,m.home,minute,homeAtk,awayDef,userHome?userAction:"");
-      if(Math.random()<awayChance)resolveAttack(m,m.away,minute,awayAtk,homeDef,userHome?"":userAction);
+      if(homeHasBall&&Math.random()<homeChance)resolveAttack(m,m.home,minute,homeAtk,awayDef,userHome?userAction:"");
+      if(!homeHasBall&&Math.random()<awayChance)resolveAttack(m,m.away,minute,awayAtk,homeDef,userHome?"":userAction);
       m.possessionHomeTotal+=minuteHomePoss;
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
@@ -257,9 +266,10 @@
     G.transaction(home.id,(home.ticket||10)*attendance,"مداخيل مباراة تفاعلية");
     const suspendedBefore=new Set(S.players.filter(p=>(p.clubId===home.id||p.clubId===away.id)&&Number(p.suspension)>0).map(p=>p.id));
     [[home.id,m.homeGoals],[away.id,m.awayGoals]].forEach(([id,goals])=>{
-      const lineupIds=(m.lineups&&m.lineups[id])||G.squad(id).filter(p=>p.starter&&!p.injured&&!p.suspension).map(p=>p.id);const starters=lineupIds.map(pid=>S.players.find(p=>p.id===pid&&p.clubId===id)).filter(p=>p&&!p.injured&&!p.suspension);
+      const lineupIds=[...new Set([...(m.lineups&&m.lineups[id]||[]),...(m.substitutedOut||[]).filter(pid=>S.players.find(p=>p.id===pid)?.clubId===id)])];
+      const starters=lineupIds.map(pid=>S.players.find(p=>p.id===pid&&p.clubId===id)).filter(Boolean);
       starters.forEach(p=>{p.apps=(p.apps||0)+1;p.form=Math.max(30,Math.min(100,(p.form||65)+G.rand(-2,4)));if(Math.random()<.008){p.injured=true;p.injuryDays=G.rand(3,20)}if(Math.random()<.025)p.suspension=Math.max(1,Number(p.suspension)||0)});
-      for(let i=0;i<goals;i++){const scorers=starters.filter(p=>p.pos==="FWD"||p.pos==="MID");if(scorers.length){const p=G.pick(scorers);p.goals=(p.goals||0)+1}}
+      starters.forEach(p=>{const st=m.playerStats?.[String(p.id)];if(st){p.goals=(p.goals||0)+(st.goals||0);p.assists=(p.assists||0)+(st.assists||0)}});
     });
     suspendedBefore.forEach(pid=>{const p=S.players.find(x=>x.id===pid);if(p)p.suspension=Math.max(0,Number(p.suspension)-1)});
     if(m.homeGoals>m.awayGoals)G.transaction(home.id,180000,"منحة فوز");
