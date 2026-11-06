@@ -419,6 +419,7 @@
         const setPieceTeam=m.pitch.setPiece.teamId;
         m.pitch.possession=setPieceTeam;
         resolveSetPiece(m,minute);
+        m.pitch.minute=minute;
         m.playerMinutes=m.playerMinutes||{};
         [m.home,m.away].forEach(teamId=>{
           const pressing=m.tactics?.[teamId]?.pressing||"متوسط";
