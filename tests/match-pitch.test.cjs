@@ -18,6 +18,7 @@ const keeperX=keeperDot.x;
 let r=G.stepLiveMatch("متوازن",1);
 assert.equal(r.minute,1);
 assert.equal(m.pitch.minute,1,"Pitch clock must match the match clock");
+assert.equal(Object.values(m.playerMinutes).reduce((a,b)=>a+b,0),22,"Every active player must receive one minute of match time");
 assert.ok([m.home,m.away].includes(m.pitch.possession),"Ball possession must belong to one of the two teams");
 assert.ok(m.lineups[m.pitch.possession].includes(m.pitch.ballCarrierId),"The live ball must have a carrier from the team in possession");
 assert.notEqual(m.pitch.ballX,50,"Ball must move during a simulated minute");
@@ -33,6 +34,9 @@ assert.equal(m.pitch.homePlayers.find(p=>p.id===reserveKeeper.id).x,keeperX,"Goa
 G.stepLiveMatch("متوازن",1);
 assert.equal(m.pitch.homePlayers.find(p=>p.id===reserveKeeper.id).x,keeperX,"Goalkeeper must not drift upfield");
 assert.equal(m.pitch.minute,m.minute,"Pitch and match clocks must stay synchronized");
+assert.equal(m.playerMinutes[keeperId],1,"A substituted player must stop accumulating minutes");
+assert.equal(m.playerMinutes[reserveKeeper.id],1,"A substitute must accumulate minutes only after entering");
+assert.equal(Object.values(m.playerMinutes).reduce((a,b)=>a+b,0),44,"Only the 22 players active in each minute should receive minutes");
 assert.equal(m.pitch.homePlayers.map(p=>p.id).sort().join(","),m.lineups[1].slice().sort().join(","),"Pitch players must mirror the current home lineup");
 assert.equal(m.pitch.awayPlayers.map(p=>p.id).sort().join(","),m.lineups[2].slice().sort().join(","),"Pitch players must mirror the current away lineup");
 console.log("PASS: live pitch lineup synchronization, goalkeeper positioning, minute clock, ball movement, and possession ownership");
