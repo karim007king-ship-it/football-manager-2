@@ -115,6 +115,7 @@
           return;
         }
         cs.passesCompleted++;
+        if(teamId===m.home)m.passesHome++;else m.passesAway++;
         if(receiver){
           matchEvent(m,minute,buildAction==="تمريرة بينية"?"🎯 "+carrier.name+" يرسل تمريرة بينية إلى "+receiver.name+" لتجاوز خط الوسط.":"🔄 "+carrier.name+" يمرر إلى "+receiver.name+" لبناء الهجمة.",{kind:buildAction==="تمريرة بينية"?"through-ball":"pass",playerId:carrier.id,targetId:receiver.id});
         }else{
@@ -144,7 +145,7 @@
         matchEvent(m,minute,"🛡️ "+marker.name+" يقطع عرضية "+carrier.name+".",{kind:"interception",playerId:marker.id,targetId:carrier.id});
         m.pitch.possession=defendingId;advanced=false;
       }else{
-        cs.passesCompleted++;assister=carrier;
+        cs.passesCompleted++;if(teamId===m.home)m.passesHome++;else m.passesAway++;assister=carrier;
         matchEvent(m,minute,"📨 "+carrier.name+" يرسل عرضية متقنة إلى منطقة الجزاء.",{kind:"cross",playerId:carrier.id});
         const aerial=G.pick(forwards.length?forwards:players);
         if(aerial){const aerialStat=playerMatchStats(m,aerial);const duel=clamp(.48+(attr(aerial,"heading")-attr(marker,"heading"))*.006,.25,.85);
@@ -160,7 +161,7 @@
         matchEvent(m,minute,"⛔ "+marker.name+" يقرأ التمريرة ويعترض الكرة من "+carrier.name+".",{kind:"interception",playerId:marker.id,targetId:carrier.id});
         m.pitch.possession=defendingId;advanced=false;
       }else{
-        cs.passesCompleted++;assister=carrier;
+        cs.passesCompleted++;if(teamId===m.home)m.passesHome++;else m.passesAway++;assister=carrier;
         if(receiver)matchEvent(m,minute,action==="تمريرة بينية"?"🎯 "+carrier.name+" يخترق الدفاع بتمريرة بينية إلى "+receiver.name+".":"🔄 "+carrier.name+" يمرر الكرة إلى "+receiver.name+".",{kind:action==="تمريرة بينية"?"through-ball":"pass",playerId:carrier.id,targetId:receiver.id});
         if(receiver)carrier=receiver;
       }
@@ -277,7 +278,6 @@
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
     const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
     if(!Number.isFinite(Number(m.possessionMinutes))){m.possessionMinutes=start;m.possessionHomeTotal=(Number(m.homePossession)||50)*start;}
-    const possessionFactor=styleEffect.pos>0?1.12:styleEffect.pos<0?.92:1;
     for(let minute=start+1;minute<=end;minute++){
       const minuteUserPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)-oppFormationEffect.pos-oppStyleEffect.pos-oppPressEffect.pos+(Math.random()*8-4))));
       const minuteHomePoss=userHome?minuteUserPoss:100-minuteUserPoss;
@@ -291,8 +291,6 @@
       m.possessionHomeTotal+=minuteHomePoss;
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
-      m.passesHome+=Math.round(5.5*(minuteHomePoss/50)*(userHome?possessionFactor:1));
-      m.passesAway+=Math.round(5.5*((100-minuteHomePoss)/50)*(userHome?1:possessionFactor));
       if(minute%3===0&&!m.events.some(e=>e.minute===minute)){
         const possessionTeam=homeHasBall?m.home:m.away;
         const active=(m.lineups[possessionTeam]||[]).map(id=>S.players.find(p=>p.id===id)).filter(Boolean);
