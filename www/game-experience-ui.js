@@ -10,8 +10,11 @@
  const pct=n=>Math.max(0,Math.min(100,Number(n)||0));
  const matchStat=(m,teamId,key)=>Object.values(m.playerStats||{}).reduce((sum,st)=>sum+(S.players.find(p=>p.id===st.playerId)?.clubId===teamId?(Number(st[key])||0):0),0);
  function stopMatchClock(){if(matchTimer!==null){window.clearInterval(matchTimer);matchTimer=null;}matchPlaying=false;}
+ function matchFinalMinute(m){return 90+(Number(m?.stoppage?.second)||0);}
+ function matchFirstEnd(m){return 45+(Number(m?.stoppage?.first)||0);}
+ function minuteLabel(m){const n=Number(m?.minute)||0;if(n>45&&n<=matchFirstEnd(m))return "45+"+(n-45)+"′";if(n>90&&n<=matchFinalMinute(m))return "90+"+(n-90)+"′";return n+"′";}
  function startMatchClock(){
-  if(!S.liveMatch||S.liveMatch.status!=="live"||S.liveMatch.minute>=90||matchTimer!==null||document.hidden)return;
+  if(!S.liveMatch||S.liveMatch.status!=="live"||S.liveMatch.minute>=matchFinalMinute(S.liveMatch)||matchTimer!==null||document.hidden)return;
   matchPlaying=true;
   matchTimer=window.setInterval(()=>{
    const live=S.liveMatch;
@@ -55,8 +58,8 @@
   const h=G.club(m.home),a=G.club(m.away),userHome=m.home===S.clubId;
   const liveTactics=(m.tactics&&m.tactics[S.clubId])||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
   const tacticalGroup=(label,key,options)=>'<div class="ex-tactic-group"><b>'+label+'</b><div class="ex-shortcuts">'+options.map(v=>btn(v,"live-tactic:"+key+":"+v,liveTactics[key]===v?"gold":"")).join("")+'</div></div>';
-  return '<div class="ex-match-banner"><span>LIVE MATCH CENTRE</span><b>'+esc(m.minute)+"′</b></div>"+
-   '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/90*100)+'%"></i></div><small>'+m.minute+' من 90 دقيقة</small></div>'+
+  return '<div class="ex-match-banner"><span>LIVE MATCH CENTRE</span><b>'+minuteLabel(m)+'</b></div>'+
+   '<div class="ex-scoreboard"><small>'+esc(S.fixtures.find(f=>f.id===m.fixtureId)?.competition||"مباراة")+'</small><div class="ex-score-teams"><div><span>🛡️</span><b>'+esc(h.short)+'</b></div><strong>'+m.homeGoals+' : '+m.awayGoals+'</strong><div><span>🛡️</span><b>'+esc(a.short)+'</b></div></div><div class="ex-progress"><i style="width:'+Math.min(100,m.minute/matchFinalMinute(m)*100)+'%"></i></div><small>'+m.minute+' من '+matchFinalMinute(m)+' دقيقة محتسبة</small></div>'+
    section("ملعب المباراة المباشر",card((()=>{
       const p=m.pitch||{ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:[],awayPlayers:[]};
       const pitchPlayers=[...(p.homePlayers||[]).map(x=>({...x,side:"home"})),...(p.awayPlayers||[]).map(x=>({...x,side:"away"}))];
@@ -76,12 +79,12 @@
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),players=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),groups=[["حارس","GK"],["الدفاع","DEF"],["الوسط","MID"],["الهجوم","FWD"]];
       return '<p class="ex-muted">اللاعبون الموجودون حالياً على أرض الملعب: '+players.length+'/11</p><div class="ex-live-lineup">'+groups.map(([label,pos])=>{const list=players.filter(p=>positionGroup(p)===pos);return list.length?'<div class="ex-live-lineup-row"><b>'+label+'</b><div>'+list.map(p=>'<span>'+esc(p.name)+'</span>').join("")+'</div></div>':""}).join("")+'</div>';
     })()))+
-   section("إيقاع المباراة",card('<p class="ex-muted">الوقت يتقدم تلقائياً دقيقة بدقيقة، مع تعليق أحداث اللعب. '+(matchPlaying?"المباراة جارية الآن.":"المباراة متوقفة مؤقتاً.")+'</p><div class="ex-shortcuts">'+btn(matchPlaying?"⏸ إيقاف مؤقت":(m.minute===45?"▶ استئناف الشوط الثاني":"▶ استئناف اللعب"),"match-toggle","gold")+btn("1× سرعة عادية","match-speed:1200",matchSpeed===1200?"gold":"")+btn("2× سرعة مضاعفة","match-speed:600",matchSpeed===600?"gold":"")+btn("4× سرعة سريعة","match-speed:300",matchSpeed===300?"gold":"")+'</div><p class="ex-muted">كل دقيقة في المباراة تستغرق '+(matchSpeed/1000).toFixed(1)+' ثانية في السرعة المختارة. تتوقف المباراة عند الاستراحة (45′) والنهاية (90′).</p>'))+
+   section("إيقاع المباراة",card('<p class="ex-muted">الوقت يتقدم تلقائياً دقيقة بدقيقة، مع تعليق أحداث اللعب. '+(matchPlaying?"المباراة جارية الآن.":"المباراة متوقفة مؤقتاً.")+'</p><div class="ex-shortcuts">'+btn(matchPlaying?"⏸ إيقاف مؤقت":(m.minute===matchFirstEnd(m)?"▶ استئناف الشوط الثاني":"▶ استئناف اللعب"),"match-toggle","gold")+btn("1× سرعة عادية","match-speed:1200",matchSpeed===1200?"gold":"")+btn("2× سرعة مضاعفة","match-speed:600",matchSpeed===600?"gold":"")+btn("4× سرعة سريعة","match-speed:300",matchSpeed===300?"gold":"")+'</div><p class="ex-muted">كل دقيقة في المباراة تستغرق '+(matchSpeed/1000).toFixed(1)+' ثانية في السرعة المختارة. تتوقف المباراة عند نهاية الشوط الأول بعد '+(m.stoppage?.first||0)+' دقائق بدل ضائع، وعند نهاية المباراة بعد '+(m.stoppage?.second||0)+' دقائق بدل ضائع.</p>'))+
     section("التكتيك أثناء المباراة",card('<p class="ex-muted">تُطبّق التعديلات فوراً على الفترة التالية، وتؤثر في الهجوم والدفاع والاستحواذ والإرهاق.</p>'+tacticalGroup("الخطة","formation",["4-4-2","4-3-3","4-2-3-1","3-5-2"])+tacticalGroup("أسلوب اللعب","style",["متوازن","استحواذ","مرتدات","لعب مباشر","الأطراف"])+tacticalGroup("الضغط","pressing",["منخفض","متوسط","عالٍ"])+tacticalGroup("خط الدفاع","defensiveLine",["متأخرة","متوسطة","متقدمة"])+tacticalGroup("عرض اللعب","width",["متوازنة","واسعة","ضيقة"])))+
    section("التبديلات",card((()=>{
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),starters=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),substitutedOut=new Set(m.substitutedOut||[]),bench=team.filter(p=>!ids.includes(p.id)&&!substitutedOut.has(p.id)&&!p.injured&&!p.suspension),used=(m.substitutions&&m.substitutions[S.clubId])||0;
       if(used>=5)return '<p class="ex-muted">استهلكت التبديلات الخمسة المسموح بها.</p>';
-      if(selectedSubOut===null)return '<p class="ex-muted">اختر لاعباً أساسياً لإخراجه، ثم اختر بديلاً من خط اللعب نفسه. المتبقي: '+(5-used)+'</p>'+starters.map(p=>btn("خروج: "+esc(p.name)+" · "+positionLabel(p),"sub-out:"+p.id,"mini")).join("");
+      if(selectedSubOut===null)return '<p class="ex-muted">اختر لاعباً أساسياً لإخراجه، ثم اختر بديلاً من خط اللعب نفسه. المتبقي: '+(5-used)+'</p>'+(starters.some(p=>p.injured)?'<p class="ex-muted">🩹 لاعبون مصابون: '+starters.filter(p=>p.injured).map(p=>esc(p.name)).join("، ")+' — يُنصح باستبدالهم.</p>':'')+starters.map(p=>btn((p.injured?"🩹 خروج مصاب: ":"خروج: ")+esc(p.name)+" · "+positionLabel(p),"sub-out:"+p.id,"mini")).join("");
       const outgoing=team.find(p=>p.id===selectedSubOut),compatible=bench.filter(p=>outgoing&&positionGroup(p)===positionGroup(outgoing));
       return '<p class="ex-muted">اختر بديلاً للاعب '+esc((outgoing||{}).name||"")+' · المركز: '+positionLabel(outgoing)+' · المتبقي: '+(5-used)+'</p>'+(compatible.length?compatible.map(p=>btn("دخول: "+esc(p.name)+" · "+positionLabel(p),"sub-in:"+p.id,"mini")).join(""):'<p class="ex-muted">لا يوجد بديل متاح من خط اللعب نفسه في قائمة الفريق.</p>')+btn("إلغاء الاختيار","sub-cancel","mini");
     })()))+
