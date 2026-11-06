@@ -39,6 +39,8 @@ const shotsBeforeBuildUp=m.homeShots+m.awayShots;
 G.stepLiveMatch("متوازن",1);
 assert.equal(m.homeShots+m.awayShots,shotsBeforeBuildUp,"A midfield build-up must not be counted as a shot");
 assert.ok(m.events.some(e=>e.kind==="pass"||e.kind==="through-ball"||e.kind==="build-up"),"Midfield possession must produce a build-up event");
+const completedPass=m.events.find(e=>e.minute===m.minute&&(e.kind==="pass"||e.kind==="through-ball")&&e.targetId);
+if(completedPass)assert.equal(m.pitch.ballCarrierId,completedPass.targetId,"The receiver of a completed pass must become the next ball carrier");
 assert.ok(m.pitch.ballX>50,"Successful build-up must move the ball toward the opponent's goal");
 assert.ok(m.passesHome>0,"Completed team pass statistics must come from actual successful passes");
 // Once the ball enters the attacking third, the attack may resolve into a shot.
