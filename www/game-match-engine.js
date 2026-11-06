@@ -34,16 +34,8 @@
       if(old[key]!==undefined&&old[key]!==null)next[key]=old[key];
     }
   }
-  function movePitch(m,minute,homeHasBall){
+  function positionPitchPlayers(m){
     const p=m.pitch;
-    const previousPossession=p.possession;
-    p.possession=homeHasBall?m.home:m.away;
-    const direction=homeHasBall?1:-1,changed=previousPossession!==p.possession;
-    const travel=changed?(4+Math.random()*5):(1+Math.random()*3);
-    p.ballX=Math.max(4,Math.min(96,p.ballX+direction*travel));
-    p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*10-5)));
-    p.phase=homeHasBall?(p.ballX>=67?"الثلث الهجومي":p.ballX<=33?"الثلث الدفاعي":"وسط الملعب"):(p.ballX<=33?"الثلث الهجومي":p.ballX>=67?"الثلث الدفاعي":"وسط الملعب");
-    p.minute=minute;
     for(const player of [...p.homePlayers,...p.awayPlayers]){
       const ownBall=player.team===p.possession;
       if(player.group==="GK"){
@@ -60,6 +52,18 @@
       const widthScale=width==="واسعة"?1.22:width==="ضيقة"?.78:1;
       player.y=Math.max(5,Math.min(95,50+(player.baseY-50)*widthScale+(p.ballY-50)*.12));
     }
+  }
+  function movePitch(m,minute,homeHasBall){
+    const p=m.pitch;
+    const previousPossession=p.possession;
+    p.possession=homeHasBall?m.home:m.away;
+    const direction=homeHasBall?1:-1,changed=previousPossession!==p.possession;
+    const travel=changed?(4+Math.random()*5):(1+Math.random()*3);
+    p.ballX=Math.max(4,Math.min(96,p.ballX+direction*travel));
+    p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*10-5)));
+    p.phase=homeHasBall?(p.ballX>=67?"الثلث الهجومي":p.ballX<=33?"الثلث الدفاعي":"وسط الملعب"):(p.ballX<=33?"الثلث الهجومي":p.ballX>=67?"الثلث الدفاعي":"وسط الملعب");
+    p.minute=minute;
+    positionPitchPlayers(m);
   }
   function playerMatchStats(m,p){
     m.playerStats=m.playerStats||{};
@@ -183,8 +187,10 @@
     matchEvent(m,minute,"⚽ "+shotPlayer.name+" يستعد للتسديد على المرمى.",{kind:"shot",playerId:shotPlayer.id});
     const accuracy=clamp(.39+(attr(shotPlayer,"finishing")-60)*.005+(attr(shotPlayer,"shotPower")-60)*.002-defensivePressure,.2,.88);
     if(Math.random()>accuracy){
-      if(teamId===m.home){if(Math.random()<.28)m.cornersHome++;}else if(Math.random()<.28)m.cornersAway++;
-      matchEvent(m,minute,"تسديدة "+shotPlayer.name+" تمر بجوار المرمى.",{kind:"shot-off-target",playerId:shotPlayer.id});
+      matchEvent(m,minute,"تسديدة "+shotPlayer.name+" تمر خارج المرمى، وتتحول الكرة إلى ضربة مرمى.",{kind:"shot-off-target",playerId:shotPlayer.id});
+      m.pitch.possession=defendingId;
+      m.pitch.ballX=teamId===m.home?92:8;
+      m.pitch.phase=teamId===m.home?"الثلث الدفاعي":"الثلث الدفاعي";
       return;
     }
     shotStats.onTarget++;
@@ -195,9 +201,19 @@
       shotStats.goals++;
       if(assister&&assister.id!==shotPlayer.id)playerMatchStats(m,assister).assists++;
       matchEvent(m,minute,"🥅 هدف! "+shotPlayer.name+" يسجل بعد هجمة منظمة، والحارس "+keeper.name+" لم يتمكن من التصدي.",{kind:"goal",playerId:shotPlayer.id,assistId:assister&&assister.id||null});
+      // Restart from the centre with the conceding team in possession.
+      m.pitch.possession=defendingId;m.pitch.ballX=50;m.pitch.ballY=50;m.pitch.phase="وسط الملعب";
     }else{
       ks.saves++;
       matchEvent(m,minute,"🧤 "+keeper.name+" يتصدى لتسديدة "+shotPlayer.name+" ويحافظ على شباكه.",{kind:"save",playerId:keeper.id,targetId:shotPlayer.id});
+      const corner=Math.random()<.18;
+      if(corner){
+        if(teamId===m.home)m.cornersHome++;else m.cornersAway++;
+        matchEvent(m,minute,"🚩 ركنية للفريق المهاجم بعد إبعاد الحارس للكرة.",{kind:"corner",teamId});
+        m.pitch.possession=teamId;m.pitch.ballX=teamId===m.home?96:4;m.pitch.phase="الثلث الهجومي";
+      }else{
+        m.pitch.possession=defendingId;m.pitch.ballX=teamId===m.home?92:8;m.pitch.phase="الثلث الدفاعي";
+      }
     }
   }
   function begin(f){
@@ -305,9 +321,12 @@
       const userAction=["تسديد","تمريرة بينية","مراوغة","عرضية","ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)?choiceKey:"";
       if(homeHasBall&&Math.random()<homeChance)resolveAttack(m,m.home,minute,homeAtk,awayDef,userAction);
       if(!homeHasBall&&Math.random()<awayChance)resolveAttack(m,m.away,minute,awayAtk,homeDef,userAction);
-      m.possessionHomeTotal+=minuteHomePoss;
+      // Count the team that actually controlled the ball this minute,
+      // not the pre-match probability estimate used by the turnover model.
+      m.possessionHomeTotal+=homeHasBall?100:0;
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
+      positionPitchPlayers(m);
       if(minute%3===0&&!m.events.some(e=>e.minute===minute)){
         const possessionTeam=homeHasBall?m.home:m.away;
         const active=(m.lineups[possessionTeam]||[]).map(id=>S.players.find(p=>p.id===id)).filter(Boolean);
