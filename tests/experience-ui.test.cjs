@@ -35,4 +35,5 @@ assert.ok(ui.includes('x.id===p.ballCarrierId?" carrier":""'), "The live pitch m
 
 assert.ok(systemsUi.includes("row.minutes"), "Match reports should display actual player minutes");
 assert.ok(systemsUi.includes("chosen.yellowCardsHome")&&systemsUi.includes("chosen.redCardsHome"), "Match reports should display team discipline totals");
+assert.ok(systemsUi.includes("chosen.injuriesHome"), "Match reports should display injury totals");
 assert.ok(systemsUi.includes("تقييمات اللاعبين والدقائق"), "Match reports should include player ratings and playing time");
