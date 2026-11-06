@@ -48,7 +48,9 @@
       const tacticalPush=ownBall?linePush:-linePush*.55;
       const ballShift=(player.team===m.home?p.ballX-50:50-p.ballX)*.08;
       player.x=Math.max(7,Math.min(93,player.baseX+direction*tacticalPush+ballShift));
-      player.y=Math.max(7,Math.min(93,player.baseY+(p.ballY-50)*.12));
+      const width=m.tactics?.[player.team]?.width||"متوازنة";
+      const widthScale=width==="واسعة"?1.22:width==="ضيقة"?.78:1;
+      player.y=Math.max(5,Math.min(95,50+(player.baseY-50)*widthScale+(p.ballY-50)*.12));
     }
   }
   function playerMatchStats(m,p){
@@ -250,6 +252,7 @@
       }
     }
     if(JSON.stringify(ai)!==previousAI){
+      syncPitchLineups(m);
       const reason=oppScore<userScore?"الفريق متأخر في النتيجة":oppScore>userScore?"الفريق يحافظ على تقدمه":userPossBefore>=59||userTactics.style==="استحواذ"?"مواجهة استحواذ فريقك":"مواجهة ضغط فريقك";
       m.events.unshift({minute:m.minute,text:"🧠 المدرب المنافس يغيّر خطته ("+reason+"): "+ai.formation+"، "+ai.style+"، ضغط "+ai.pressing+"."});
       m.aiLastUpdateMinute=m.minute;
@@ -348,6 +351,7 @@
     m.tactics[S.clubId]=m.tactics[S.clubId]||{formation:G.me().formation||"4-4-2",style:G.me().tactic||"متوازن",pressing:"متوسط",defensiveLine:"متوسطة",width:"متوازنة"};
     if(m.tactics[S.clubId][key]===value)return {success:true,unchanged:true};
     m.tactics[S.clubId][key]=value;
+    syncPitchLineups(m);
     const labels={formation:"الخطة",style:"أسلوب اللعب",pressing:"الضغط",defensiveLine:"خط الدفاع",width:"عرض اللعب"};
     m.events.unshift({minute:m.minute,text:"🎯 تعديل تكتيكي: "+labels[key]+" — "+value+"."});
     G.save();return {success:true,tactics:m.tactics[S.clubId]};
