@@ -30,7 +30,7 @@
     const old=m.pitch||{};
     buildPitch(m);
     const next=m.pitch;
-    for(const key of ["ballX","ballY","possession","ballCarrierId","phase","minute"]){
+    for(const key of ["ballX","ballY","possession","ballCarrierId","phase","minute","setPiece"]){
       if(old[key]!==undefined&&old[key]!==null)next[key]=old[key];
     }
     if(next.ballCarrierId&&!((next.homePlayers||[]).concat(next.awayPlayers||[]).some(p=>p.id===next.ballCarrierId)))next.ballCarrierId=null;
@@ -118,7 +118,7 @@
       const offender=marker||keeper,offenderStats=playerMatchStats(m,offender);
       offenderStats.fouls++;
       const inArea=(teamId===m.home?ballX>=84:ballX<=16)&&Number(m.pitch.ballY||50)>=20&&Number(m.pitch.ballY||50)<=80;
-      const penalty=inArea&&Math.random()<.42;
+      const penalty=inArea;
       matchEvent(m,minute,penalty?"🚨 مخالفة داخل منطقة الجزاء! ركلة جزاء.":"🚩 مخالفة من "+offender.name+" على "+carrier.name+"؛ ركلة حرة للفريق المنافس.",{kind:penalty?"penalty-awarded":"foul",playerId:offender.id,targetId:carrier.id});
       m.pitch.possession=teamId;m.pitch.ballCarrierId=carrier.id;
       m.pitch.setPiece={type:penalty?"penalty":"free-kick",teamId,awardedMinute:minute,direct:penalty||Math.random()<.48,takerId:carrier.id};
