@@ -7,17 +7,22 @@
   const dayDiff=(a,b)=>Math.max(0,Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000));
   const ownFixture=()=>S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
   function buildPitch(m){
-    const groups=["GK","DEF","MID","FWD"],home=[],away=[];
+    const home=[],away=[],formationLines={"4-4-2":[4,4,2],"4-3-3":[4,3,3],"4-2-3-1":[4,5,1],"3-5-2":[3,5,2]};
     for(const [teamId,target,reverse] of [[m.home,home,false],[m.away,away,true]]){
       const players=(m.lineups[teamId]||[]).map(id=>S.players.find(p=>p.id===id)).filter(Boolean);
-      for(const group of groups){
-        const list=players.filter(p=>positionGroup(p)===group);
-        const base=({GK:8,DEF:27,MID:50,FWD:73})[group];
-        list.forEach((p,i)=>{
-          const x=reverse?100-base:base,y=(i+1)*100/(list.length+1);
-          target.push({id:p.id,name:p.name,team:teamId,group,baseX:x,baseY:y,x,y});
+      const keeper=players.find(p=>positionGroup(p)==="GK");
+      if(keeper){const x=reverse?92:8;target.push({id:keeper.id,name:keeper.name,team:teamId,group:"GK",baseX:x,baseY:50,x,y:50});}
+      const outfield=players.filter(p=>positionGroup(p)!=="GK").sort((a,b)=>({DEF:0,MID:1,FWD:2}[positionGroup(a)]??1)-({DEF:0,MID:1,FWD:2}[positionGroup(b)]??1));
+      const formation=m.tactics?.[teamId]?.formation||"4-4-2",lines=formationLines[formation]||formationLines["4-4-2"];
+      const xs=[reverse?78:22,reverse?61:39,reverse?41:59];let cursor=0;
+      lines.forEach((count,line)=>{
+        const linePlayers=outfield.slice(cursor,cursor+count);cursor+=count;
+        linePlayers.forEach((p,i)=>{
+          const y=(i+1)*100/(linePlayers.length+1),x=xs[line];
+          target.push({id:p.id,name:p.name,team:teamId,group:positionGroup(p)||"MID",baseX:x,baseY:y,x,y});
         });
-      }
+      });
+      outfield.slice(cursor).forEach((p,i)=>{const y=(i+1)*100/(outfield.length-cursor+1);target.push({id:p.id,name:p.name,team:teamId,group:positionGroup(p)||"MID",baseX:50,baseY:y,x:50,y});});
     }
     m.pitch={ballX:50,ballY:50,possession:m.home,phase:"وسط الملعب",homePlayers:home,awayPlayers:away,minute:0};
   }
@@ -31,9 +36,12 @@
   }
   function movePitch(m,minute,homeHasBall){
     const p=m.pitch;
+    const previousPossession=p.possession;
     p.possession=homeHasBall?m.home:m.away;
-    p.ballX=Math.max(4,Math.min(96,p.ballX+(homeHasBall?1:-1)*(4+Math.random()*13)));
-    p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*22-11)));
+    const direction=homeHasBall?1:-1,changed=previousPossession!==p.possession;
+    const travel=changed?(4+Math.random()*5):(1+Math.random()*3);
+    p.ballX=Math.max(4,Math.min(96,p.ballX+direction*travel));
+    p.ballY=Math.max(8,Math.min(92,p.ballY+(Math.random()*10-5)));
     p.phase=homeHasBall?(p.ballX>=67?"الثلث الهجومي":p.ballX<=33?"الثلث الدفاعي":"وسط الملعب"):(p.ballX<=33?"الثلث الهجومي":p.ballX>=67?"الثلث الدفاعي":"وسط الملعب");
     p.minute=minute;
     for(const player of [...p.homePlayers,...p.awayPlayers]){
@@ -222,8 +230,8 @@
     const choiceKey=choice||"متوازن";m.lastChoice=choiceKey;
     let actionBoost=0,defenseBoost=0;
     const p=m.pitch||{},userHasBall=p.possession===userId;
-    const userAttacking=userHasBall&&(userHome?Number(p.ballX)>=62:Number(p.ballX)<=38);
-    const userDefending=!userHasBall&&(userHome?Number(p.ballX)<=38:Number(p.ballX)>=62);
+    const userAttacking=userHasBall&&(userHome?Number(p.ballX)>=68:Number(p.ballX)<=32);
+    const userDefending=!userHasBall&&(userHome?Number(p.ballX)<=32:Number(p.ballX)>=68);
     if(userAttacking&&["تسديد","تمريرة بينية","مراوغة","عرضية"].includes(choiceKey)){
       actionBoost=choiceKey==="تسديد"?.15:choiceKey==="تمريرة بينية"?.09:choiceKey==="عرضية"?.08:.06;
     }else if(userDefending&&["ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)){
@@ -284,7 +292,13 @@
     for(let minute=start+1;minute<=end;minute++){
       const minuteUserPoss=Math.max(28,Math.min(72,Math.round(50+(userStrength.atk-oppStrength.atk)/3+formationEffect.pos+styleEffect.pos+pressEffect.pos+(choiceKey==="استحواذ"?7:0)-oppFormationEffect.pos-oppStyleEffect.pos-oppPressEffect.pos+(Math.random()*8-4))));
       const minuteHomePoss=userHome?minuteUserPoss:100-minuteUserPoss;
-      const homeHasBall=Math.random()<minuteHomePoss/100;
+      // Keep the current carrier team unless pressure or a failed action causes a turnover.
+      const currentHome=m.pitch.possession===m.home;
+      const expectedAgainst=currentHome?100-minuteHomePoss:minuteHomePoss;
+      const opponentPress=currentHome?ai.pressing:tactics.pressing;
+      const pressBonus=opponentPress==="عالٍ"?.045:opponentPress==="منخفض"?-.015:0;
+      const turnoverChance=clamp(.055+expectedAgainst*.0012+pressBonus,.045,.19);
+      const homeHasBall=Math.random()<(currentHome?1-turnoverChance:turnoverChance);
       movePitch(m,minute,homeHasBall);
       const homeChance=clamp(.07+(homeAtk-awayDef)/520+(userHome?actionBoost:0)-(userHome?0:defenseBoost),.025,.24);
       const awayChance=clamp(.07+(awayAtk-homeDef)/520+(userHome?0:actionBoost)-(userHome?defenseBoost:0),.025,.24);
