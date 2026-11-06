@@ -353,8 +353,8 @@
       const pressBonus=opponentPress==="عالٍ"?.045:opponentPress==="منخفض"?-.015:0;
       const possessionTeam=currentHome?m.home:m.away;
       const possessionTactics=m.tactics[possessionTeam]||{};
-      const styleRetention=possessionTactics.style==="استحواذ"?-.035:possessionTactics.style==="لعب مباشر"?.02:possessionTactics.style==="مرتدات"?.008:0;
-      const formationRetention=({"4-4-2":0,"4-3-3":-.025,"4-2-3-1":-.015,"3-5-2":-.005})[possessionTactics.formation]||0;
+      const styleRetention=possessionTactics.style==="استحواذ"?-.055:possessionTactics.style==="لعب مباشر"?.035:possessionTactics.style==="مرتدات"?.015:0;
+      const formationRetention=({"4-4-2":0,"4-3-3":-.02,"4-2-3-1":-.012,"3-5-2":-.004})[possessionTactics.formation]||0;
       const turnoverChance=clamp(.075+expectedAgainst*.0012+pressBonus+styleRetention+formationRetention,.035,.28);
       const homeHasBall=Math.random()<(currentHome?1-turnoverChance:turnoverChance);
       movePitch(m,minute,homeHasBall);
