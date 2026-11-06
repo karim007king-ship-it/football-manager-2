@@ -101,5 +101,9 @@ assert.equal(report.playerRatings.length,22,"Report must rate all starting parti
 assert.ok(report.playerRatings.some(x=>x.stats&&Object.values(x.stats).some(v=>typeof v==="number"&&v>0)),"Ratings must include event-derived player statistics");
 assert.ok(report.playerRatings.some(p=>p.playerId===bookedId&&p.stats.redCards===1),"The match report must include dismissed players and their cards");
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,1,"The red-card suspension must remain after the match is completed");
+assert.equal(report.redCardsAway,1,"The match report must total the dismissal for the correct team");
+assert.equal(report.yellowCardsAway,2,"The match report must count both yellow cards");
+assert.equal(report.foulsAway,2,"The match report must count fouls committed by the defending team");
+assert.equal(report.playerRatings.find(p=>p.playerId===bookedId).minutes,2,"The report must preserve the dismissed player's actual minutes");
 console.log("PASS: fouls, yellow cards, second-yellow red cards, ten-player continuation, and report/suspension accounting");
 console.log("PASS: player-linked attacks, player decisions, goal/assist credit, appearances, and match ratings");
