@@ -245,8 +245,8 @@
       const homeChance=clamp(.07+(homeAtk-awayDef)/520+(userHome?actionBoost:0)-(userHome?0:defenseBoost),.025,.24);
       const awayChance=clamp(.07+(awayAtk-homeDef)/520+(userHome?0:actionBoost)-(userHome?defenseBoost:0),.025,.24);
       const userAction=["تسديد","تمريرة بينية","مراوغة","عرضية","ضغط على حامل الكرة","تراجع دفاعي","افتكاك الكرة"].includes(choiceKey)?choiceKey:"";
-      if(homeHasBall&&Math.random()<homeChance)resolveAttack(m,m.home,minute,homeAtk,awayDef,userHome?userAction:"");
-      if(!homeHasBall&&Math.random()<awayChance)resolveAttack(m,m.away,minute,awayAtk,homeDef,userHome?"":userAction);
+      if(homeHasBall&&Math.random()<homeChance)resolveAttack(m,m.home,minute,homeAtk,awayDef,userAction);
+      if(!homeHasBall&&Math.random()<awayChance)resolveAttack(m,m.away,minute,awayAtk,homeDef,userAction);
       m.possessionHomeTotal+=minuteHomePoss;
       m.possessionMinutes++;
       m.homePossession=Math.round(m.possessionHomeTotal/m.possessionMinutes);
