@@ -7,6 +7,16 @@ const G=window.FM2,S=G.state;S.clubId=1;S.career=true;S.date="2026-11-05";
 const fixture={id:99401,date:S.date,home:1,away:2,status:"scheduled",competition:"اختبار الأحداث",round:"اختبار"};
 S.fixtures=[fixture];assert.equal(G.beginLiveMatch(fixture.id).success,true);
 const m=S.liveMatch,opponentKeeper=m.lineups[2].find(id=>S.players.find(p=>p.id===id).pos==="GK");
+// A possession in midfield must create build-up play, never an immediate shot.
+m.pitch.possession=1;m.pitch.ballX=50;m.pitch.ballY=50;
+G.stepLiveMatch("متوازن",1);
+assert.equal(m.homeShots+m.awayShots,0,"A midfield build-up must not be counted as a shot");
+assert.ok(m.events.some(e=>e.kind==="pass"||e.kind==="through-ball"||e.kind==="build-up"),"Midfield possession must produce a build-up event");
+assert.ok(m.pitch.ballX>50,"Successful build-up must move the ball toward the opponent's goal");
+// Once the ball enters the attacking third, the attack may resolve into a shot.
+m.pitch.possession=1;m.pitch.ballX=64;m.pitch.ballY=50;
+G.stepLiveMatch("تسديد",1);
+assert.ok(m.homeShots+m.awayShots>0,"Attacks reaching the final third must be able to produce shots");
 m.pitch.possession=1;m.pitch.ballX=78;m.pitch.ballY=50;
 G.stepLiveMatch("تسديد",1);
 m.pitch.possession=1;m.pitch.ballX=80;G.stepLiveMatch("تمريرة بينية",1);
