@@ -69,13 +69,13 @@ assert.ok(m.events.every(e=>!e.kind||typeof e.kind==="string"),"Event metadata m
 assert.ok(Object.values(m.playerStats).some(x=>x.assists>0),"Successful attacking combinations must credit assists");
 // Reuse the current test match so the disciplinary sequence does not depend on post-match squad resets.
 const cardMatch=m;
-cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;cardMatch.pitch.setPiece=null;
+cardMatch.pitch.possession=1;cardMatch.pitch.ballX=50;cardMatch.pitch.ballY=50;cardMatch.pitch.setPiece=null;
 const forceFoulAndCard=()=>{
   // Pin the away carrier so the seeded sequence is stable even when movePitch
   // needs to select a new carrier. Order: possession, movement, attack, picks,
   // foul, set-piece type, injury roll, and card roll.
-  cardMatch.pitch.ballCarrierId=cardMatch.lineups[2].find(id=>S.players.find(p=>p.id===id)?.pos!=="GK")||null;
-  const values=[.5,.99,.5,.5,.01,.5,.5,.99,.5,.99,.99];let index=0;
+  cardMatch.pitch.ballCarrierId=cardMatch.lineups[1].find(id=>S.players.find(p=>p.id===id)?.pos!=="GK")||null;
+  const values=[.5,.01,.5,.5,.01,.5,.5,.99,.5,.99,.99];let index=0;
   math.random=()=>values[index++]??.99;
 };
 forceFoulAndCard();
@@ -85,7 +85,7 @@ assert.ok(yellowEvent,"A disciplinary foul can produce a yellow card");
 const bookedId=yellowEvent.playerId;
 const bookedMinutesBefore=Number(cardMatch.playerMinutes[bookedId]||0)-1;
 assert.equal(cardMatch.playerStats[String(bookedId)].yellowCards,1,"The first booking must be recorded in match statistics");
-cardMatch.pitch.possession=2;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;cardMatch.pitch.setPiece=null;
+cardMatch.pitch.possession=1;cardMatch.pitch.ballX=50;cardMatch.pitch.ballCarrierId=null;cardMatch.pitch.setPiece=null;
 forceFoulAndCard();
 G.stepLiveMatch("متوازن",1);
 assert.ok(cardMatch.events.some(e=>e.kind==="yellow-card"&&e.playerId===bookedId&&e.second),"The second yellow must be logged before dismissal");
