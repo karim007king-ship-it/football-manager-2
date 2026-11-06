@@ -17,6 +17,7 @@ assert.ok(m.events.some(e=>e.minute===45&&e.text.includes("وقتاً بدل ض�
 assert.ok(m.events.some(e=>e.minute===47&&e.text.includes("نهاية الشوط الأول")),"halftime event must be recorded at the actual period end");
 r=G.stepLiveMatch("متوازن",10);assert.equal(r.minute,57,"second half must resume after halftime");
 m.minute=89;r=G.stepLiveMatch("متوازن",15);assert.equal(r.minute,93,"second half must include three minutes of stoppage time");
+assert.ok(m.events.some(e=>e.minute===90&&e.text.includes("وقتاً بدل ضائع")&&e.period===2),"second-half stoppage time must be announced at 90");
 assert.equal(r.finished,true,"match must finish after second-half stoppage time");
 assert.equal(m.minute,93,"match clock must reach the calculated final minute");
 assert.equal(S.liveMatch,null,"finished match must close live state");
