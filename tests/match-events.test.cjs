@@ -91,6 +91,7 @@ const activeAway=cardMatch.lineups[2][0];
 assert.ok(G.substituteLiveMatch(activeAway,bookedId).error,"A dismissed player must not be allowed back as a substitute");
 assert.equal(S.players.find(p=>p.id===bookedId).suspension,2,"A dismissal must schedule a one-match suspension after the current fixture");
 math.random=()=>0.5;
+m.stoppage={first:0,second:0};
 m.minute=89;G.stepLiveMatch("متوازن",1);
 const scorerStat=Object.values(m.playerStats).find(x=>x.goals>0);
 assert.ok(scorerStat,"At least one goal must have a recorded scorer");
