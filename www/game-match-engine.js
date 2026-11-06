@@ -325,7 +325,8 @@
     const opponentPlayers=(m.lineups[oppId]||[]).map(pid=>S.players.find(p=>p.id===pid)).filter(Boolean);
     const opponentAverageFatigue=opponentPlayers.length?opponentPlayers.reduce((n,p)=>n+(Number(p.fatigue)||0),0)/opponentPlayers.length:0;
     const opponentFatiguePenalty=Math.min(5,opponentAverageFatigue/18);
-    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk-opponentFatiguePenalty,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def-opponentFatiguePenalty};
+    const opponentManpowerPenalty=Math.max(0,11-(m.lineups[oppId]||[]).length)*5;
+    const oppStrength={atk:rawOppStrength.atk+oppFormationEffect.atk+oppStyleEffect.atk+oppPressEffect.atk+oppLineEffect.atk+oppWidthEffect.atk-opponentFatiguePenalty-opponentManpowerPenalty,def:rawOppStrength.def+oppFormationEffect.def+oppStyleEffect.def+oppPressEffect.def+oppLineEffect.def+oppWidthEffect.def-opponentFatiguePenalty-opponentManpowerPenalty};
     const tactics=userTactics;
     const formationEffect=({"4-4-2":{atk:0,def:0,pos:0},"4-3-3":{atk:3,def:-1,pos:2},"4-2-3-1":{atk:1,def:2,pos:1},"3-5-2":{atk:2,def:-2,pos:0}})[tactics.formation]||{atk:0,def:0,pos:0};
     const styleEffect=({"متوازن":{atk:0,def:0,pos:0},"استحواذ":{atk:1,def:0,pos:8},"مرتدات":{atk:3,def:1,pos:-5},"لعب مباشر":{atk:2,def:-1,pos:-4},"الأطراف":{atk:2,def:0,pos:1}})[tactics.style]||{atk:0,def:0,pos:0};
@@ -337,8 +338,9 @@
     const activePlayers=(m.lineups[userId]||[]).map(pid=>S.players.find(p=>p.id===pid)).filter(Boolean);
     const averageFatigue=activePlayers.length?activePlayers.reduce((n,p)=>n+(Number(p.fatigue)||0),0)/activePlayers.length:0;
     const fatiguePenalty=Math.min(5,averageFatigue/18);
-    const userAtk=userStrength.atk+mentalityAtk+formationEffect.atk+styleEffect.atk+pressEffect.atk+lineEffect.atk+widthEffect.atk-fatiguePenalty;
-    const userDef=userStrength.def+mentalityDef+formationEffect.def+styleEffect.def+pressEffect.def+lineEffect.def+widthEffect.def-fatiguePenalty*.55;
+    const userManpowerPenalty=Math.max(0,11-(m.lineups[userId]||[]).length)*5;
+    const userAtk=userStrength.atk+mentalityAtk+formationEffect.atk+styleEffect.atk+pressEffect.atk+lineEffect.atk+widthEffect.atk-fatiguePenalty-userManpowerPenalty;
+    const userDef=userStrength.def+mentalityDef+formationEffect.def+styleEffect.def+pressEffect.def+lineEffect.def+widthEffect.def-fatiguePenalty*.55-userManpowerPenalty;
     const homeAtk=userHome?userAtk:oppStrength.atk, awayAtk=userHome?oppStrength.atk:userAtk;
     const homeDef=userHome?userDef:oppStrength.def, awayDef=userHome?oppStrength.def:userDef;
     const start=m.minute,requestedMinutes=Math.max(1,Math.min(15,Math.floor(Number(minutes)||1))),end=Math.min(90,start+requestedMinutes,start<45?45:90);
