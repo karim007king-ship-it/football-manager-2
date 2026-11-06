@@ -1,13 +1,29 @@
 // Visual dashboard and interactive match centre for Football Manager 2
 (() => {
  const G=window.FM2;if(!G||G.experienceUiLoaded)return;const S=G.state,$=s=>document.querySelector(s);
- let page=S.liveMatch?"match":"home",selectedSubOut=null;
+ let page=S.liveMatch?"match":"home",selectedSubOut=null,matchTimer=null,matchPlaying=false,matchSpeed=1200,matchPlan="متوازن",pendingMatchAction=null,autoResumeAfterVisibility=false;
  const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
  const num=n=>new Intl.NumberFormat("ar-TN").format(Math.round(n||0));
  const card=h=>'<div class="ex-card">'+h+'</div>';
  const section=(t,h)=>'<section class="ex-section"><h2>'+t+'</h2>'+h+'</section>';
  const btn=(t,a,c="")=>'<button class="ex-btn '+c+'" data-ex-act="'+a+'">'+t+'</button>';
  const pct=n=>Math.max(0,Math.min(100,Number(n)||0));
+ function stopMatchClock(){if(matchTimer!==null){window.clearInterval(matchTimer);matchTimer=null;}matchPlaying=false;}
+ function startMatchClock(){
+  if(!S.liveMatch||S.liveMatch.status!=="live"||S.liveMatch.minute>=90||matchTimer!==null||document.hidden)return;
+  matchPlaying=true;
+  matchTimer=window.setInterval(()=>{
+   const live=S.liveMatch;
+   if(!live||live.status!=="live"||page!=="match"||document.hidden){stopMatchClock();render();return;}
+   const choice=pendingMatchAction||matchPlan;pendingMatchAction=null;
+   const result=G.stepLiveMatch(choice,1);
+   if(result.error){stopMatchClock();render();return;}
+   if(result.finished||result.halfTime)stopMatchClock();
+   render();
+   if(result.finished)setTimeout(()=>alert("انتهت المباراة. النتيجة: "+result.match.homeGoals+" - "+result.match.awayGoals),30);
+  },matchSpeed);
+ }
+ function setMatchSpeed(speed){matchSpeed=speed;if(matchPlaying){stopMatchClock();startMatchClock();}render();}
  const fixture=()=>S.fixtures.filter(f=>f.status==="scheduled"&&(f.home===S.clubId||f.away===S.clubId)).sort((a,b)=>a.date.localeCompare(b.date))[0];
  const bar=(label,value,color="gold")=>'<div class="ex-meter-label"><span>'+label+'</span><b>'+value+'%</b></div><div class="ex-meter"><i class="'+color+'" style="width:'+pct(value)+'%"></i></div>';
  function home(){
@@ -48,16 +64,15 @@
     })()))+
    section("قراراتك داخل الملعب",card((()=>{
       const p=m.pitch||{},hasBall=p.possession===S.clubId,attacking=hasBall&&(userHome?Number(p.ballX)>=62:Number(p.ballX)<=38),defending=!hasBall&&(userHome?Number(p.ballX)<=38:Number(p.ballX)>=62);
-      if(attacking)return '<p class="ex-muted">فريقك في الثلث الهجومي. اختر طريقة إنهاء الهجمة أو تطويرها.</p><div class="ex-shortcuts">'+btn("⚽ تسديد","step:تسديد:1","gold")+btn("تمريرة بينية","step:تمريرة بينية:1")+btn("مراوغة","step:مراوغة:1")+btn("عرضية","step:عرضية:1")+'</div>';
-      if(defending)return '<p class="ex-muted">المنافس يهاجم. اختر طريقة التعامل مع حامل الكرة.</p><div class="ex-shortcuts">'+btn("ضغط على حامل الكرة","step:ضغط على حامل الكرة:1","gold")+btn("تراجع دفاعي","step:تراجع دفاعي:1")+btn("محاولة افتكاك الكرة","step:افتكاك الكرة:1")+'</div>';
-      return '<p class="ex-muted">اللعب في وسط الملعب. تابع انتقال الكرة أو غيّر عقلية فريقك.</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي:1")+btn("متوازن","step:متوازن:1","gold")+btn("دفاعي","step:دفاعي:1")+btn("تقدم دقيقة","step:متوازن:1")+'</div>';
+      if(attacking)return '<p class="ex-muted">فريقك في الثلث الهجومي. اختر الإجراء القادم؛ سيُنفّذ مع الدقيقة التالية تلقائياً.</p><div class="ex-shortcuts">'+btn("⚽ تسديد","match-choice:تسديد",pendingMatchAction==="تسديد"?"gold":"")+btn("تمريرة بينية","match-choice:تمريرة بينية",pendingMatchAction==="تمريرة بينية"?"gold":"")+btn("مراوغة","match-choice:مراوغة",pendingMatchAction==="مراوغة"?"gold":"")+btn("عرضية","match-choice:عرضية",pendingMatchAction==="عرضية"?"gold":"")+'</div>';
+      if(defending)return '<p class="ex-muted">المنافس يهاجم. اختر طريقة التعامل مع حامل الكرة.</p><div class="ex-shortcuts">'+btn("ضغط على حامل الكرة","match-choice:ضغط على حامل الكرة",pendingMatchAction==="ضغط على حامل الكرة"?"gold":"")+btn("تراجع دفاعي","match-choice:تراجع دفاعي",pendingMatchAction==="تراجع دفاعي"?"gold":"")+btn("محاولة افتكاك الكرة","match-choice:افتكاك الكرة",pendingMatchAction==="افتكاك الكرة"?"gold":"")+'</div>';
+      return '<p class="ex-muted">اللعب في وسط الملعب. اختر عقلية فريقك؛ وسيستمر الوقت تلقائياً.</p><div class="ex-shortcuts">'+btn("هجومي","match-plan:هجومي",matchPlan==="هجومي"?"gold":"")+btn("متوازن","match-plan:متوازن",matchPlan==="متوازن"?"gold":"")+btn("دفاعي","match-plan:دفاعي",matchPlan==="دفاعي"?"gold":"")+btn("ضغط عالٍ","match-plan:ضغط عالٍ",matchPlan==="ضغط عالٍ"?"gold":"")+'</div>';
     })()))+
    section("التشكيلة الحالية",card((()=>{
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),players=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),groups=[["حارس","GK"],["الدفاع","DEF"],["الوسط","MID"],["الهجوم","FWD"]];
       return '<p class="ex-muted">اللاعبون الموجودون حالياً على أرض الملعب: '+players.length+'/11</p><div class="ex-live-lineup">'+groups.map(([label,pos])=>{const list=players.filter(p=>p.pos===pos);return list.length?'<div class="ex-live-lineup-row"><b>'+label+'</b><div>'+list.map(p=>'<span>'+esc(p.name)+'</span>').join("")+'</div></div>':""}).join("")+'</div>';
     })()))+
-   section("التحكم في وقت المباراة",card('<p class="ex-muted">كل دقيقة تُحاكى على حدة. اختر مقدار التقدم، وستتوقف المباراة تلقائياً عند الدقيقة 45 للاستراحة وعند الدقيقة 90 للنهاية.</p><div class="ex-shortcuts">'+btn("تقدم دقيقة واحدة","step:متوازن:1","gold")+btn("تقدم 5 دقائق","step:متوازن:5")+btn("تقدم 10 دقائق","step:متوازن:10")+btn("تقدم 15 دقيقة","step:متوازن:15")+'</div>'))+
-    section(m.minute===45?"استراحة بين الشوطين":"قرارات المدرب",card('<p class="ex-muted">اختر عقلية الفريق للفترة القادمة. القرار يطبق على كل دقيقة من الفترة التالية.</p><div class="ex-shortcuts">'+btn("هجومي","step:هجومي:1")+btn("متوازن","step:متوازن:1")+btn("دفاعي","step:دفاعي:1")+btn("ضغط عالٍ","step:ضغط عالٍ:1")+'</div>'))+
+   section("إيقاع المباراة",card('<p class="ex-muted">الوقت يتقدم تلقائياً دقيقة بدقيقة، مع تعليق أحداث اللعب. '+(matchPlaying?"المباراة جارية الآن.":"المباراة متوقفة مؤقتاً.")+'</p><div class="ex-shortcuts">'+btn(matchPlaying?"⏸ إيقاف مؤقت":(m.minute===45?"▶ استئناف الشوط الثاني":"▶ استئناف اللعب"),"match-toggle","gold")+btn("1× سرعة عادية","match-speed:1200",matchSpeed===1200?"gold":"")+btn("2× سرعة مضاعفة","match-speed:600",matchSpeed===600?"gold":"")+btn("4× سرعة سريعة","match-speed:300",matchSpeed===300?"gold":"")+'</div><p class="ex-muted">كل دقيقة في المباراة تستغرق '+(matchSpeed/1000).toFixed(1)+' ثانية في السرعة المختارة. تتوقف المباراة عند الاستراحة (45′) والنهاية (90′).</p>'))+
     section("التكتيك أثناء المباراة",card('<p class="ex-muted">تُطبّق التعديلات فوراً على الفترة التالية، وتؤثر في الهجوم والدفاع والاستحواذ والإرهاق.</p>'+tacticalGroup("الخطة","formation",["4-4-2","4-3-3","4-2-3-1","3-5-2"])+tacticalGroup("أسلوب اللعب","style",["متوازن","استحواذ","مرتدات","لعب مباشر","الأطراف"])+tacticalGroup("الضغط","pressing",["منخفض","متوسط","عالٍ"])+tacticalGroup("خط الدفاع","defensiveLine",["متأخرة","متوسطة","متقدمة"])+tacticalGroup("عرض اللعب","width",["متوازنة","واسعة","ضيقة"])))+
    section("التبديلات",card((()=>{
       const ids=(m.lineups&&m.lineups[S.clubId])||[],team=G.squad(S.clubId),starters=ids.map(id=>team.find(p=>p.id===id)).filter(Boolean),substitutedOut=new Set(m.substitutedOut||[]),bench=team.filter(p=>!ids.includes(p.id)&&!substitutedOut.has(p.id)&&!p.injured&&!p.suspension),used=(m.substitutions&&m.substitutions[S.clubId])||0;
@@ -66,7 +81,7 @@
       const outgoing=team.find(p=>p.id===selectedSubOut),compatible=bench.filter(p=>outgoing&&positionGroup(p)===positionGroup(outgoing));
       return '<p class="ex-muted">اختر بديلاً للاعب '+esc((outgoing||{}).name||"")+' · المركز: '+positionLabel(outgoing)+' · المتبقي: '+(5-used)+'</p>'+(compatible.length?compatible.map(p=>btn("دخول: "+esc(p.name)+" · "+positionLabel(p),"sub-in:"+p.id,"mini")).join(""):'<p class="ex-muted">لا يوجد بديل متاح من خط اللعب نفسه في قائمة الفريق.</p>')+btn("إلغاء الاختيار","sub-cancel","mini");
     })()))+
-   section("أحداث المباراة",card('<div class="ex-events">'+m.events.slice(0,12).map(e=>'<div><b>'+e.minute+'′</b><span>'+esc(e.text)+'</span></div>').join("")+'</div>'))+
+   section("أحداث المباراة",card('<div class="ex-events">'+m.events.slice(0,18).map(e=>'<div><b>'+e.minute+'′</b><span>'+esc(e.text)+'</span></div>').join("")+'</div>'))+
    section("إحصائيات مباشرة",card('<div class="ex-live-stats">'+[['التسديدات',m.homeShots,m.awayShots],['على المرمى',m.homeOnTarget,m.awayOnTarget],['الاستحواذ',m.homePossession+"%",(100-m.homePossession)+"%"],['الركنيات',m.cornersHome,m.cornersAway]].map(x=>'<div><b>'+x[1]+'</b><span>'+x[0]+'</span><b>'+x[2]+'</b></div>').join("")+'</div>'));
  }
  function training(){
@@ -106,13 +121,17 @@
   if(k==="tactics"){page="tactics";render();return}
   if(k==="set-tactic"){G.me().tactic=id;G.save();render();return}
   if(k==="set-formation"){G.me().formation=id;G.me().familiarity=Math.max(25,G.me().familiarity-5);G.save();render();return}
-  if(k==="open-match"){page="match";if(!S.liveMatch&&fixture()&&fixture().date<=S.date)G.beginLiveMatch(fixture().id);render();return}
-  if(k==="begin-match"){const r=G.beginLiveMatch(fixture()?.id);if(r.error)alert(r.error);page="match";render();return}
+  if(k==="open-match"){page="match";if(!S.liveMatch&&fixture()&&fixture().date<=S.date){const r=G.beginLiveMatch(fixture().id);if(r.error)alert(r.error)}render();if(S.liveMatch)startMatchClock();return}
+  if(k==="begin-match"){const r=G.beginLiveMatch(fixture()?.id);if(r.error)alert(r.error);page="match";render();if(S.liveMatch)startMatchClock();return}
   if(k==="sub-out"){selectedSubOut=Number(id);render();return}
   if(k==="sub-cancel"){selectedSubOut=null;render();return}
   if(k==="sub-in"){if(selectedSubOut===null)return;const r=G.substituteLiveMatch(selectedSubOut,Number(id));selectedSubOut=null;if(r.error)alert(r.error);render();return}
   if(k==="live-tactic"){const r=G.setLiveTactics(id,val);if(r.error)alert(r.error);render();return}
-  if(k==="step"){const r=G.stepLiveMatch(id,Number(val)||1);if(r.error)alert(r.error);if(r.finished){page="match";render();setTimeout(()=>alert("انتهت المباراة. النتيجة: "+r.match.homeGoals+" - "+r.match.awayGoals),30);return}render();return}
+  if(k==="match-choice"){pendingMatchAction=id;render();return}
+  if(k==="match-plan"){matchPlan=id;pendingMatchAction=null;render();return}
+  if(k==="match-speed"){setMatchSpeed(Number(id)||1200);return}
+  if(k==="match-toggle"){if(matchPlaying)stopMatchClock();else startMatchClock();render();return}
+  if(k==="step"){const r=G.stepLiveMatch(id,Number(val)||1);if(r.error)alert(r.error);if(r.finished||r.halfTime)stopMatchClock();render();if(r.finished)setTimeout(()=>alert("انتهت المباراة. النتيجة: "+r.match.homeGoals+" - "+r.match.awayGoals),30);return}
   if(k==="advance"){G.advance(Number(id));if(S.liveMatch)page="match";render();return}
   if(k==="focus"){const p=S.players.find(x=>x.id===Number(id));if(p){p.focus=val==="إلغاء"?null:val;G.save()}render();return}
   if(k==="team-training"){if(G.me().budget<5000){alert("الميزانية لا تكفي للحصة الجماعية.");return}G.transaction(S.clubId,-5000,"حصة تدريب تكتيكية جماعية");G.me().familiarity=Math.min(100,G.me().familiarity+8);G.save();render();return}
@@ -121,12 +140,13 @@
   if(k==="base"){page=null;if(id==="inbox")document.querySelector('[data-sys-tab="inbox"]')?.click();else document.querySelector('[data-tab="'+id+'"]')?.click();return}
  }
  document.addEventListener("click",e=>{
-  const ex=e.target.closest("[data-ex-tab]");if(ex){e.preventDefault();e.stopImmediatePropagation();page=ex.dataset.exTab;render();return}
-  const old=e.target.closest("[data-tab]");if(old&&old.dataset.tab==="team"){e.preventDefault();e.stopImmediatePropagation();page="team";render();return}if(old&&old.dataset.tab==="home"){e.preventDefault();e.stopImmediatePropagation();page="home";render();return}
+  const ex=e.target.closest("[data-ex-tab]");if(ex){e.preventDefault();e.stopImmediatePropagation();page=ex.dataset.exTab;if(page==="match"&&S.liveMatch)startMatchClock();else stopMatchClock();render();return}
+  const old=e.target.closest("[data-tab]");if(old&&old.dataset.tab==="team"){e.preventDefault();e.stopImmediatePropagation();page="team";stopMatchClock();render();return}if(old&&old.dataset.tab==="home"){e.preventDefault();e.stopImmediatePropagation();page="home";stopMatchClock();render();return}
   const a=e.target.closest("[data-ex-act]");if(a){e.preventDefault();e.stopImmediatePropagation();action(a.dataset.exAct);return}
  },true);
  const nav=$("nav");
  [["match","⚽ المباراة"],["training","🏋️ التدريب"],["press","🎙️ الإعلام"],["fans","🏟️ الجماهير"]].forEach(([id,label])=>{const b=document.createElement("button");b.dataset.exTab=id;b.textContent=label;nav.appendChild(b)});
+ document.addEventListener("visibilitychange",()=>{if(document.hidden){autoResumeAfterVisibility=matchPlaying;stopMatchClock();}else if(autoResumeAfterVisibility&&page==="match"&&S.liveMatch){autoResumeAfterVisibility=false;startMatchClock();}});
  const style=document.createElement("style");style.textContent=`
  :root{--ex-gold:#e9bf58;--ex-green:#39c889;--ex-line:#294454}
  body{background:radial-gradient(ellipse at 50% -15%,#1d4651 0,#0a1722 58%,#07111a 100%)}
@@ -178,5 +198,5 @@
  @media(min-width:650px){.ex-player{grid-template-columns:1fr auto;align-items:center}.ex-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}.ex-hero{min-height:235px}.ex-hero h1{font-size:31px}}
  @media(max-width:380px){.ex-kpis{gap:5px}.ex-kpis>div{padding:9px 4px}.ex-kpis b{font-size:14px}.ex-hero h1{font-size:21px}.ex-score-teams div b{font-size:12px}}
  `;document.head.appendChild(style);
- G.experienceUiLoaded=true;render();
+ G.experienceUiLoaded=true;render();if(page==="match"&&S.liveMatch)startMatchClock();
 })();
