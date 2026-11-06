@@ -10,7 +10,7 @@ function playWith(config){
  const m=S.liveMatch;
  for(const [key,value] of Object.entries(config||{}))assert.equal(G.setLiveTactics(key,value).success,true,"Tactic "+key+" should be accepted");
  let result;for(let i=0;i<6;i++)result=G.stepLiveMatch("متوازن",15);assert.equal(result.finished,true);
- return {possession:m.homePossession,passes:m.passesHome,tactics:m.tactics[1],fatigue:G.squad(1).filter(p=>m.lineups[1].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0)};
+ return {possession:m.homePossession,passes:m.passesHome,tactics:m.tactics[1],fatigue:G.squad(1).filter(p=>m.lineups[1].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0),opponentFatigue:G.squad(2).filter(p=>m.lineups[2].includes(p.id)).reduce((n,p)=>n+(Number(p.fatigue)||0),0),playedMinutes:Object.values(m.playerMinutes||{}).reduce((n,v)=>n+v,0)};
 }
 const baseline=playWith({});
 const possession=playWith({style:"استحواذ"});
@@ -21,6 +21,8 @@ assert.ok(direct.possession<possession.possession,"Direct play must reduce posse
 const highPress=playWith({pressing:"عالٍ"}),lowPress=playWith({pressing:"منخفض"});
 assert.ok(highPress.possession>lowPress.possession,"High pressing must change the team's possession profile");
 assert.ok(highPress.fatigue>lowPress.fatigue,"High pressing must cause more player fatigue than low pressing");
+assert.ok(baseline.opponentFatigue>0,"The opposing team must also accumulate match fatigue");
+assert.equal(baseline.playedMinutes,22*90,"The full match must account for 90 minutes for each of 22 players");
 const attacking=playWith({formation:"4-3-3"}),defensive=playWith({formation:"3-5-2"});
 assert.ok(attacking.possession>defensive.possession,"Formation choice must affect match dynamics");
 const invalidStore=new Map(),localStorage={getItem:k=>invalidStore.get(k)||null,setItem:(k,v)=>invalidStore.set(k,String(v))};
