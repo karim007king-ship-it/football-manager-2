@@ -14,7 +14,7 @@ assert.ok(goalOrShot,"A shot chain must identify the shooting player");
 assert.ok(m.playerStats[goalOrShot.playerId],"The involved player must have individual match stats");
 assert.ok(m.homeShots+m.awayShots>0,"A resolved attack must increment shot statistics");
 assert.ok(m.events.some(e=>e.kind==="goal"||e.kind==="save"||e.kind==="shot-off-target"),"Attack must resolve into goal, save, or off-target shot");
-assert.ok(m.playerStats[String(userKeeper)],"Goalkeeper should receive match stats when involved");
+assert.ok(m.playerStats[String(opponentKeeper)],"Opposing goalkeeper should receive match stats when defending");
 assert.ok(m.events.every(e=>!e.kind||typeof e.kind==="string"),"Event metadata must be serializable");
 G.createMatchReport(fixture,m);const report=G.getReport(fixture.id);
 assert.equal(report.playerRatings.length,22,"Report must rate all starting participants");
