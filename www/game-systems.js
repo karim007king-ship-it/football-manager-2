@@ -39,11 +39,11 @@
       possessionHome:homePoss,possessionAway:100-homePoss,cornersHome:live?live.cornersHome:rand(1,10),cornersAway:live?live.cornersAway:rand(1,9),
       passesHome:live?live.passesHome:rand(250,520),passesAway:live?live.passesAway:rand(250,520),attendance:live&&live.attendance?live.attendance:rand(3500,Math.max(3501,Math.min(home.capacity||30000,home.capacity||30000))),
       playerRatings:[]};
-    const participantIds=live?new Set([...(live.lineups?.[f.home]||[]),...(live.lineups?.[f.away]||[]),...(live.substitutedOut||[])]):null;
+    const participantIds=live?new Set([...(live.lineups?.[f.home]||[]),...(live.lineups?.[f.away]||[]),...(live.substitutedOut||[]),...(live.sentOff||[])]):null;
     const participants=live?S.players.filter(p=>participantIds.has(p.id)&&(p.clubId===f.home||p.clubId===f.away)):S.players.filter(p=>(p.clubId===f.home||p.clubId===f.away)&&p.apps>0).slice(0,22);
     report.playerRatings=participants.map(p=>{
       const st=live?.playerStats?.[String(p.id)]||{};
-      const rating=live?Math.min(9.8,Math.max(5.0,Number((6+((Number(p.form)||65)-65)/35+(st.goals||0)*1.15+(st.assists||0)*.65+(st.onTarget||0)*.18+(st.passesCompleted||0)*.025+(st.tackles||0)*.12+(st.interceptions||0)*.1+(st.saves||0)*.35-(st.turnovers||0)*.12).toFixed(1)))):Math.min(9.8,Math.max(5.5,Number((6.2+rand(0,25)/10+(p.goals?0.5:0)).toFixed(1))));
+      const rating=live?Math.min(9.8,Math.max(5.0,Number((6+((Number(p.form)||65)-65)/35+(st.goals||0)*1.15+(st.assists||0)*.65+(st.onTarget||0)*.18+(st.passesCompleted||0)*.025+(st.tackles||0)*.12+(st.interceptions||0)*.1+(st.saves||0)*.35-(st.turnovers||0)*.12-(st.yellowCards||0)*.25-(st.redCards||0)*1).toFixed(1)))):Math.min(9.8,Math.max(5.5,Number((6.2+rand(0,25)/10+(p.goals?0.5:0)).toFixed(1))));
       return {playerId:p.id,rating,stats:live?{...st}:undefined};
     });
     S.matchReports.unshift(report); if(S.matchReports.length>80)S.matchReports.length=80;
